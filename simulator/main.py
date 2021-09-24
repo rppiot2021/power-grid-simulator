@@ -67,10 +67,10 @@ async def async_main(conf):
     await simulator._executor(pandapower.runpp, simulator.pp.net)
 
     simulator._state = {}
-    for asdu in conf['points']:
-        for io in conf['points'][asdu]:
-            point_conf = conf['points'][asdu][io]
-            table = getattr(simulator.pp.net, point_conf['table'])
+    for asdu in simulator._points:
+        for io in simulator._points[asdu]:
+            point_conf = simulator._points[asdu][io]
+            table = simulator.pp.net[point_conf['table']]
             series = table[point_conf['property']]
 
             simulator._push_new_value_to_state(
@@ -86,21 +86,6 @@ async def async_main(conf):
     await simulator._notify()
 
     await simulator.wait_closed()
-
-
-def check_difference(value_old, value_new):
-
-    if isinstance(value_old, FloatingValue) and \
-            isinstance(value_new, FloatingValue):
-
-        return math.isclose(value_old.value, value_new.value, rel_tol=1e-5)
-
-    elif isinstance(value_old, SingleValue) and\
-            isinstance(value_new, SingleValue):
-
-        return value_old.value == value_new.value
-
-    raise TypeError
 
 
 class Simulator(aio.Resource):
@@ -179,24 +164,54 @@ class Simulator(aio.Resource):
 
                     series = table[point_conf['property']]
 
-                    new_value = _104_value(
-                        series[point_conf['id']],
-                        point_conf['type']
-                    )
-
                     old_data = json.get(self._state, [str(asdu), str(io)])
                     old_value = old_data.value
 
-                    if not check_difference(
-                            old_value,
-                            new_value
-                    ):
-                        self._push_new_value_to_state(
-                            asdu,
-                            io,
-                            new_value,
-                            iec104.Cause.SPONTANEOUS
-                        )
+                    # if point_conf['type'] == 'float':
+                    #     new_val = iec104.FloatingValue(series[point_conf['id']])
+                    #
+                    # elif point_conf['type'] == 'single':
+                    #     new_val = iec104.SingleValue.ON if series[point_conf['id']] \
+                    #         else iec104.SingleValue.OFF
+
+                    if isinstance(old_value, FloatingValue) and \
+                            point_conf['type'] == 'float':
+
+                        new_val_ = iec104.FloatingValue(series[point_conf['id']])
+                        new_val = new_val_.value
+
+                        if not old_value.value == new_val:
+
+                            self._state = json.set_(
+                                self._state,
+                                [str(asdu), str(io)],
+                                Data(
+                                    value=new_val_,
+                                    cause=iec104.Cause.SPONTANEOUS,
+                                    timestamp=time.time()
+                                )
+                            )
+
+
+                    elif isinstance(old_value, SingleValue) and\
+                            point_conf['type'] == 'single':
+
+                        tmp = iec104.SingleValue.ON if series[point_conf['id']] \
+                            else iec104.SingleValue.OFF
+
+                        if not old_value.value == tmp.value:
+                            self._state = json.set_(
+                                self._state,
+                                [str(asdu), str(io)],
+                                Data(
+                                    value=tmp,
+                                    cause=iec104.Cause.SPONTANEOUS,
+                                    timestamp=time.time()
+                                )
+                            )
+
+                    else:
+                        raise TypeError
 
     def _push_new_value_to_state(self, asdu, io, value, cause):
         self._state = json.set_(
