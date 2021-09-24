@@ -1,4 +1,3 @@
-import os.path
 from pathlib import Path
 import asyncio
 import click
@@ -13,7 +12,6 @@ import math
 from hat import aio
 from hat import json
 from hat.drivers import iec104
-import hat.drivers
 from hat.drivers.iec104.common import FloatingValue, SingleValue
 
 mlog = logging.getLogger('simulator')
@@ -155,9 +153,7 @@ class Simulator(aio.Resource):
             await asyncio.sleep(random.gauss(self._spontaneity['mu'],
                                              self._spontaneity['sigma']))
 
-            index_pool = []
-            for index, _ in self.pp.net['gen'].iterrows():
-                index_pool.append(index)
+            index_pool = [index for index, _ in self.pp.net['gen'].iterrows()]
 
             index = random.choice(index_pool)
             data_point = ("gen", "p_mw")
@@ -178,8 +174,10 @@ class Simulator(aio.Resource):
 
                     series = table[point_conf['property']]
 
-                    new_value = _104_value(series[point_conf['id']],
-                                           point_conf['type'])
+                    new_value = _104_value(
+                        series[point_conf['id']],
+                        point_conf['type']
+                    )
 
                     old_data = json.get(self._state, [str(asdu), str(io)])
                     old_value = old_data.value
