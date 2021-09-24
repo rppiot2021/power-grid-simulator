@@ -80,6 +80,8 @@ async def async_main(conf):
                 iec104.Cause.INITIALIZED
             )
 
+    print("state filled, run adapter now")
+
     simulator._async_group.spawn(simulator._main_loop)
 
     simulator.previous = set()
@@ -159,59 +161,26 @@ class Simulator(aio.Resource):
                 for io in self._points[asdu]:
 
                     point_conf = self._points[asdu][io]
-
                     table = self.pp.net[point_conf['table']]
-
                     series = table[point_conf['property']]
 
-                    old_data = json.get(self._state, [str(asdu), str(io)])
-                    old_value = old_data.value
+                    old_value = json.get(self._state, [str(asdu), str(io)]).value
 
-                    # if point_conf['type'] == 'float':
-                    #     new_val = iec104.FloatingValue(series[point_conf['id']])
-                    #
-                    # elif point_conf['type'] == 'single':
-                    #     new_val = iec104.SingleValue.ON if series[point_conf['id']] \
-                    #         else iec104.SingleValue.OFF
+                    if point_conf['type'] == 'float' and isinstance(old_value, FloatingValue):
+                        new_val = iec104.FloatingValue(series[point_conf['id']])
 
-                    if isinstance(old_value, FloatingValue) and \
-                            point_conf['type'] == 'float':
-
-                        new_val_ = iec104.FloatingValue(series[point_conf['id']])
-                        new_val = new_val_.value
-
-                        if not old_value.value == new_val:
-
-                            self._state = json.set_(
-                                self._state,
-                                [str(asdu), str(io)],
-                                Data(
-                                    value=new_val_,
-                                    cause=iec104.Cause.SPONTANEOUS,
-                                    timestamp=time.time()
-                                )
-                            )
-
-
-                    elif isinstance(old_value, SingleValue) and\
-                            point_conf['type'] == 'single':
-
-                        tmp = iec104.SingleValue.ON if series[point_conf['id']] \
+                    elif point_conf['type'] == 'single' and isinstance(old_value, SingleValue):
+                        new_val = iec104.SingleValue.ON if series[point_conf['id']] \
                             else iec104.SingleValue.OFF
-
-                        if not old_value.value == tmp.value:
-                            self._state = json.set_(
-                                self._state,
-                                [str(asdu), str(io)],
-                                Data(
-                                    value=tmp,
-                                    cause=iec104.Cause.SPONTANEOUS,
-                                    timestamp=time.time()
-                                )
-                            )
 
                     else:
                         raise TypeError
+
+                    if not old_value.value == new_val.value:
+
+                        self._push_new_value_to_state(
+                            asdu, io, new_val, iec104.Cause.SPONTANEOUS
+                        )
 
     def _push_new_value_to_state(self, asdu, io, value, cause):
         self._state = json.set_(
