@@ -73,14 +73,14 @@ async def async_main(conf):
             table = getattr(simulator.pp.net, point_conf['table'])
             series = table[point_conf['property']]
 
-            simulator.push_new_value_to_state(
+            simulator._push_new_value_to_state(
                 asdu,
                 io,
                 _104_value(series[point_conf['id']], point_conf['type']),
                 iec104.Cause.INITIALIZED
             )
 
-    simulator._async_group.spawn(simulator._spontaneous_loop)
+    simulator._async_group.spawn(simulator._main_loop)
 
     simulator.previous = set()
     await simulator._notify()
@@ -90,10 +90,16 @@ async def async_main(conf):
 
 def check_difference(value_old, value_new):
 
-    if isinstance(value_old, FloatingValue):
+    if isinstance(value_old, FloatingValue) and \
+            isinstance(value_new, FloatingValue):
+
         return math.isclose(value_old.value, value_new.value, rel_tol=1e-5)
-    elif isinstance(value_old, SingleValue):
+
+    elif isinstance(value_old, SingleValue) and\
+            isinstance(value_new, SingleValue):
+
         return value_old.value == value_new.value
+
     raise TypeError
 
 
@@ -104,7 +110,6 @@ class Simulator(aio.Resource):
         return self._async_group
 
     async def _connection_cb(self, connection):
-        print("connection callback CALL")
         self._connections.add(connection)
         connection.async_group.spawn(
             aio.call_on_cancel,
@@ -137,7 +142,7 @@ class Simulator(aio.Resource):
 
             series[conf['id']] = value
 
-            self.push_new_value_to_state(
+            self._push_new_value_to_state(
                 command.asdu_address,
                 command.io_address,
                 command.value,
@@ -148,7 +153,7 @@ class Simulator(aio.Resource):
 
         return True
 
-    async def _spontaneous_loop(self):
+    async def _main_loop(self):
         while True:
             await asyncio.sleep(random.gauss(self._spontaneity['mu'],
                                              self._spontaneity['sigma']))
@@ -186,14 +191,14 @@ class Simulator(aio.Resource):
                             old_value,
                             new_value
                     ):
-                        self.push_new_value_to_state(
+                        self._push_new_value_to_state(
                             asdu,
                             io,
                             new_value,
                             iec104.Cause.SPONTANEOUS
                         )
 
-    def push_new_value_to_state(self, asdu, io, value, cause):
+    def _push_new_value_to_state(self, asdu, io, value, cause):
         self._state = json.set_(
             self._state,
             [str(asdu), str(io)],
