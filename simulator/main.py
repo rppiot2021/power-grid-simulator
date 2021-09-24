@@ -67,24 +67,13 @@ async def async_main(conf):
     await simulator._executor(pandapower.runpp, simulator.pp.net)
 
     simulator._state = {}
-    # for asdu in simulator._points:
-    #     for io in simulator._points[asdu]:
-    #         point_conf = simulator._points[asdu][io]
-    #         table = simulator.pp.net[point_conf['table']]
-    #         series = table[point_conf['property']]
-    #
-    #         simulator._push_new_value_to_state(
-    #             asdu,
-    #             io,
-    #             _104_value(series[point_conf['id']], point_conf['type']),
-    #             iec104.Cause.INITIALIZED
-    #         )
 
     print("state filled, run adapter now")
 
     simulator._async_group.spawn(simulator._main_loop)
 
     simulator.previous = set()
+
     await simulator._notify()
 
     await simulator.wait_closed()
@@ -140,20 +129,22 @@ class Simulator(aio.Resource):
 
         return True
 
-
     async def _loop_driver(self, payloader):
         for asdu in self._points:
             for io in self._points[asdu]:
 
+                point_conf = self._points[asdu][io]
+                table = self.pp.net[point_conf['table']]
+                series = table[point_conf['property']]
+
                 await payloader(
                     asdu=asdu,
                     io=io,
+                    point_conf=point_conf,
+                    series=series
                 )
 
-    async def _loop_init_payload(self, asdu, io,):
-        point_conf = self._points[asdu][io]
-        table = self.pp.net[point_conf['table']]
-        series = table[point_conf['property']]
+    async def _loop_init_payload(self, asdu, io, point_conf, series):
 
         self._push_new_value_to_state(
             asdu,
@@ -162,30 +153,23 @@ class Simulator(aio.Resource):
             iec104.Cause.INITIALIZED
         )
 
-    async def _loop_while_payload(self, asdu, io):
-
-        point_conf = self._points[asdu][io]
-        table = self.pp.net[point_conf['table']]
-        series = table[point_conf['property']]
+    async def _loop_while_payload(self, asdu, io, point_conf, series):
 
         old_value = json.get(self._state, [str(asdu), str(io)]).value
 
-        if point_conf['type'] == 'float' and isinstance(old_value,
-                                                        FloatingValue):
-            new_val = iec104.FloatingValue(series[point_conf['id']])
-
-        elif point_conf['type'] == 'single' and isinstance(old_value,
-                                                           SingleValue):
-            new_val = iec104.SingleValue.ON if series[point_conf['id']] \
-                else iec104.SingleValue.OFF
-
-        else:
-            raise TypeError
+        new_val = _104_value(series[point_conf['id']], point_conf['type'])
 
         if not old_value.value == new_val.value:
             self._push_new_value_to_state(
                 asdu, io, new_val, iec104.Cause.SPONTANEOUS
             )
+
+    def get_point_from_config(self, asdu, io):
+        point_conf = self._points[asdu][io]
+        table = self.pp.net[point_conf['table']]
+        series = table[point_conf['property']]
+
+        return series[point_conf['id']]
 
     async def _main_loop(self):
 
@@ -208,30 +192,6 @@ class Simulator(aio.Resource):
             pandapower.runpp(self.pp.net)
 
             await self._loop_driver(self._loop_while_payload)
-
-            # for asdu in self._points:
-            #     for io in self._points[asdu]:
-            #         point_conf = self._points[asdu][io]
-            #         table = self.pp.net[point_conf['table']]
-            #         series = table[point_conf['property']]
-            #
-            #         old_value = json.get(self._state, [str(asdu), str(io)]).value
-            #
-            #         if point_conf['type'] == 'float' and isinstance(old_value, FloatingValue):
-            #             new_val = iec104.FloatingValue(series[point_conf['id']])
-            #
-            #         elif point_conf['type'] == 'single' and isinstance(old_value, SingleValue):
-            #             new_val = iec104.SingleValue.ON if series[point_conf['id']] \
-            #                 else iec104.SingleValue.OFF
-            #
-            #         else:
-            #             raise TypeError
-            #
-            #         if not old_value.value == new_val.value:
-            #
-            #             self._push_new_value_to_state(
-            #                 asdu, io, new_val, iec104.Cause.SPONTANEOUS
-            #             )
 
     def _push_new_value_to_state(self, asdu, io, value, cause):
         self._state = json.set_(
