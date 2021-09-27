@@ -8,6 +8,8 @@ from collections import defaultdict
 from hat.drivers import iec104
 import asyncio
 
+from enum import Flag
+
 ADDRESSES = []
 
 
@@ -106,13 +108,26 @@ class DataManager:
         try:
             asdu = int(asdu)
             io = int(io)
-            # todo fix this in other part
-            val = iec104.common.SingleValue(1 if value == "closed" else 0)
+
+            if isinstance(value, str):
+
+                if value == "close":
+                    value = iec104.common.SingleValue(1)
+
+                elif value == "open":
+                    value = iec104.common.SingleValue(0)
+
+                else:
+                    raise ValueError
+
+            else:
+                    value = value
+
         except ValueError:
             return
 
         command = iec104.Command(
-            value=val,
+            value=value,
             asdu_address=asdu,
             io_address=io,
             action=iec104.Action.EXECUTE,
@@ -145,9 +160,6 @@ async def async_main():
     print("curr data")
     [print(i) for i in t.items()]
 
-    # while True:
-
-    # todo handle other cases
     await data_manager.send_data("closed", 30, 0)
     print("data sent")
 
