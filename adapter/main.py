@@ -54,15 +54,23 @@ class DataManager:
         self.reconnect_delay = reconnect_delay
         self.send_retry_count = send_retry_count
 
+    async def _connection_wrapper(self, payload):
+        while True:
+            try:
+                return await payload()
+            except ConnectionError:
+                print("Connection error")
+                self.connection = await self._connect()
+
     async def get_init_data(self):
-        raw_data = await self.connection.interrogate(asdu_address=65535)
 
-        return {(i.asdu_address, i.io_address): i.value for i in raw_data}
+        async def get_init_data_payload():
+            raw_data = await self.connection.interrogate(asdu_address=65535)
+            return {(i.asdu_address, i.io_address): i.value for i in raw_data}
 
-    async def get_curr_data(self):
-        raw_data = await self.connection.receive()
-
-        return {(i.asdu_address, i.io_address): i.value for i in raw_data}
+        return await self._connection_wrapper(
+            get_init_data_payload
+        )
 
     async def _connect(self):
         address = iec104.Address(self.domain_name, self.port)
@@ -79,6 +87,17 @@ class DataManager:
                     await asyncio.sleep(1)
 
                 print("reconnecting\n")
+
+    async def get_curr_data(self):
+
+        async def get_curr_data_payload():
+            raw_data = await self.connection.receive()
+            return {(i.asdu_address, i.io_address): i.value for i in
+                    raw_data}
+
+        return await self._connection_wrapper(
+            get_curr_data_payload
+        )
 
     async def send_data(self, value, asdu, io):
 
@@ -103,13 +122,13 @@ class DataManager:
 
         print("command", command)
 
-        result = await self.connection.send_command(command)
-
         for _ in range(self.send_retry_count):
-            if result:
+            try:
+                result = await self.connection.send_command(command)
                 return
-
-            result = await connection.send_command(command)
+            except ConnectionError:
+                print("Connection error")
+                self.connection = await self._connect()
 
         raise Exception("can not send command")
 
@@ -125,6 +144,8 @@ async def async_main():
     t = await data_manager.get_curr_data()
     print("curr data")
     [print(i) for i in t.items()]
+
+    # while True:
 
     # todo handle other cases
     await data_manager.send_data("closed", 30, 0)

@@ -8,11 +8,9 @@ import random
 import sys
 import time
 import typing
-import math
 from hat import aio
 from hat import json
 from hat.drivers import iec104
-from hat.drivers.iec104.common import FloatingValue, SingleValue
 
 mlog = logging.getLogger('simulator')
 default_conf_path = 'conf.yaml'
@@ -87,12 +85,18 @@ class Simulator(aio.Resource):
 
     async def _connection_cb(self, connection):
         self._connections.add(connection)
-        connection.async_group.spawn(
+
+        for i in [connection, self]:
+            i.async_group.spawn(
             aio.call_on_cancel,
             lambda: self._connections.remove(connection))
-        self.async_group.spawn(
-            aio.call_on_cancel,
-            lambda: self._connections.remove(connection))
+
+        # connection.async_group.spawn(
+        #     aio.call_on_cancel,
+        #     lambda: self._connections.remove(connection))
+        # self.async_group.spawn(
+        #     aio.call_on_cancel,
+        #     lambda: self._connections.remove(connection))
 
     async def _interrogate_cb(self, _, asdu):
         data = self._data_from_state()
@@ -163,13 +167,6 @@ class Simulator(aio.Resource):
             self._push_new_value_to_state(
                 asdu, io, new_val, iec104.Cause.SPONTANEOUS
             )
-
-    def get_point_from_config(self, asdu, io):
-        point_conf = self._points[asdu][io]
-        table = self.pp.net[point_conf['table']]
-        series = table[point_conf['property']]
-
-        return series[point_conf['id']]
 
     async def _main_loop(self):
 
