@@ -11,9 +11,70 @@ import typing
 from hat import aio
 from hat import json
 from hat.drivers import iec104
+from abc import ABC, abstractmethod
 
 mlog = logging.getLogger('simulator')
 default_conf_path = 'conf.yaml'
+
+
+class Strategy(ABC):
+
+    @abstractmethod
+    async def connect_cb(self, connection_cb,interrogate_cb,command_cb, address):
+        pass
+
+    @abstractmethod
+    def wrap_data(self, simulation_data, asdu, io):
+        pass
+
+    @abstractmethod
+    def wrap_value(self, value, type_104):
+        pass
+
+
+class ConnectionIEC104(Strategy):
+    class Data(typing.NamedTuple):
+        value: iec104.DataValue
+        cause: iec104.Cause
+        timestamp: float
+
+    async def connect_cb(self, connection_cb,interrogate_cb,command_cb, address):
+        return await iec104.listen(
+            connection_cb=connection_cb,
+            addr=address,
+            interrogate_cb=interrogate_cb,
+            command_cb=command_cb
+        )
+
+
+    def wrap_data(self, simulation_data, asdu, io):
+        return iec104.Data(asdu_address=asdu,
+                           io_address=io,
+                           value=simulation_data.value,
+                           cause=simulation_data.cause,
+                           time=iec104.time_from_datetime(
+                               datetime.datetime.utcfromtimestamp(
+                                   simulation_data.timestamp)),
+                           quality=iec104.Quality(*([False] * 5)),
+                           is_test=False)
+
+    def wrap_value(self, value, type_104):
+        if type_104 == 'float':
+            return iec104.FloatingValue(value)
+        if type_104 == 'single':
+            return iec104.SingleValue.ON if value else iec104.SingleValue.OFF
+        raise ValueError(f'{type_104}')
+
+
+class ConnectionOther(Strategy):
+    async def connect_cb(self, connection_cb,interrogate_cb,command_cb, address):
+        pass
+
+    def wrap_data(self, simulation_data, asdu, io):
+        pass
+
+    def wrap_value(self, value, type_104):
+        pass
 
 
 class PandaPowerExample:
@@ -41,9 +102,9 @@ class PandaPowerExample:
             random.uniform(ref_value * 0.75, ref_value * 1.25), 0)
 
 
-async def async_main(conf):
+async def async_main(conf, protocol):
     simulator = Simulator()
-
+    simulator._state = {}
     simulator.pp = PandaPowerExample()
 
     simulator._points = conf['points']
@@ -51,29 +112,25 @@ async def async_main(conf):
 
     address = iec104.Address(conf['address']['host'], conf['address']['port'])
 
-    simulator._srv = await iec104.listen(
-        connection_cb=simulator._connection_cb,
-        addr=address,
-        interrogate_cb=simulator._interrogate_cb,
-        command_cb=simulator._command_cb
-    )
-    simulator._connections = set()
+    simulator._protocol = protocol()
+    simulator._srv = await simulator._protocol.connect_cb(
+        simulator._connection_cb,
+        simulator._interrogate_cb,
+        simulator._command_cb,
+        address)
 
+    simulator._connections = set()
     simulator._async_group = aio.Group()
     simulator._executor = aio.create_executor()
 
     await simulator._executor(pandapower.runpp, simulator.pp.net)
 
-    simulator._state = {}
 
     print("state filled, run adapter now")
-
     simulator._async_group.spawn(simulator._main_loop)
-
     simulator.previous = set()
 
     await simulator._notify()
-
     await simulator.wait_closed()
 
 
@@ -84,19 +141,13 @@ class Simulator(aio.Resource):
         return self._async_group
 
     async def _connection_cb(self, connection):
+        # gets iec104 connection object
         self._connections.add(connection)
 
         for i in [connection, self]:
             i.async_group.spawn(
-            aio.call_on_cancel,
-            lambda: self._connections.remove(connection))
-
-        # connection.async_group.spawn(
-        #     aio.call_on_cancel,
-        #     lambda: self._connections.remove(connection))
-        # self.async_group.spawn(
-        #     aio.call_on_cancel,
-        #     lambda: self._connections.remove(connection))
+                aio.call_on_cancel,
+                lambda: self._connections.remove(connection))
 
     async def _interrogate_cb(self, _, asdu):
         data = self._data_from_state()
@@ -136,7 +187,6 @@ class Simulator(aio.Resource):
     async def _loop_driver(self, payloader):
         for asdu in self._points:
             for io in self._points[asdu]:
-
                 point_conf = self._points[asdu][io]
                 table = self.pp.net[point_conf['table']]
                 series = table[point_conf['property']]
@@ -153,7 +203,7 @@ class Simulator(aio.Resource):
         self._push_new_value_to_state(
             asdu,
             io,
-            _104_value(series[point_conf['id']], point_conf['type']),
+            self._protocol.wrap_value(series[point_conf['id']], point_conf['type']),
             iec104.Cause.INITIALIZED
         )
 
@@ -161,7 +211,7 @@ class Simulator(aio.Resource):
 
         old_value = json.get(self._state, [str(asdu), str(io)]).value
 
-        new_val = _104_value(series[point_conf['id']], point_conf['type'])
+        new_val = self._protocol.wrap_value(series[point_conf['id']], point_conf['type'])
 
         if not old_value.value == new_val.value:
             self._push_new_value_to_state(
@@ -194,7 +244,7 @@ class Simulator(aio.Resource):
         self._state = json.set_(
             self._state,
             [str(asdu), str(io)],
-            Data(
+            self._protocol.Data(
                 value=value,
                 cause=cause,
                 timestamp=time.time()
@@ -204,9 +254,10 @@ class Simulator(aio.Resource):
     def _data_from_state(self):
         for asdu_str, substate in self._state.items():
             for io_str, data in substate.items():
-                yield _104_data(data, int(asdu_str), int(io_str))
+                yield self._protocol.wrap_data(data, int(asdu_str), int(io_str))
 
     async def _notify(self):
+
         data = list(self._data_from_state())
         self._send([d for d in data if d not in self.previous])
         self.previous = set(data)
@@ -216,38 +267,12 @@ class Simulator(aio.Resource):
             connection.notify_data_change(data)
 
 
-class Data(typing.NamedTuple):
-    value: iec104.DataValue
-    cause: iec104.Cause
-    timestamp: float
-
-
-def _104_data(simulation_data, asdu, io):
-    return iec104.Data(asdu_address=asdu,
-                       io_address=io,
-                       value=simulation_data.value,
-                       cause=simulation_data.cause,
-                       time=iec104.time_from_datetime(
-                           datetime.datetime.utcfromtimestamp(
-                               simulation_data.timestamp)),
-                       quality=iec104.Quality(*([False] * 5)),
-                       is_test=False)
-
-
-def _104_value(value, type_104):
-    if type_104 == 'float':
-        return iec104.FloatingValue(value)
-    if type_104 == 'single':
-        return iec104.SingleValue.ON if value else iec104.SingleValue.OFF
-    raise ValueError(f'{type_104}')
-
-
 @click.command()
 @click.option('--conf-path', type=Path, default=default_conf_path)
 def main(conf_path):
     conf = json.decode_file(conf_path)
     aio.init_asyncio()
-    aio.run_asyncio(async_main(conf))
+    aio.run_asyncio(async_main(conf, ConnectionIEC104))
 
 
 if __name__ == '__main__':
