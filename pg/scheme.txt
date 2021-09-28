@@ -1,0 +1,9 @@
+master
+    server = Server(host, port)
+
+slave
+    client = Client(host, port)
+
+    client.send("temp val send")
+
+    tmp_r = client.receive()
