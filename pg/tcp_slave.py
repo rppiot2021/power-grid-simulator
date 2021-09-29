@@ -6,18 +6,18 @@ class Client:
 
     def driver(self, host, port, payload=None):
 
-        sel = selectors.DefaultSelector()
-
         address = (host, port)
         print("starting connection to", address)
+
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setblocking(False)
         sock.connect_ex(address)
+
         events = selectors.EVENT_READ | selectors.EVENT_WRITE
+
+        sel = selectors.DefaultSelector()
         message = self.Message(sel, sock, address)
         sel.register(sock, events, data=message)
-
-        self.message = message
 
         if payload:
             message.set_data(payload)
@@ -42,17 +42,14 @@ class Client:
         self.host = host
         self.port = port
 
-        self.driver(host, port)
 
+
+        # self.driver(host, port)
 
     def send(self, payload):
         print("prepare", payload)
 
         self.driver(self.host, self.port, payload)
-
-        # self.message.set_data(payload)
-        #
-        # self.message.process_events(mask=0)
 
     class Message:
 
@@ -66,12 +63,13 @@ class Client:
             self._receive_buffer = b""
             self._send_buffer = b""
             self._request_queued = False
-            self.counter = 0
             self.data_to_send = "f"
 
             print("new message instanced")
 
         def process_events(self, mask):
+            print("mask", mask)
+
             if mask & selectors.EVENT_READ:
                 data = self.sock.recv(4096)
                 self._receive_buffer += data
@@ -82,13 +80,6 @@ class Client:
                 if not self._request_queued:
                     self._send_buffer += b"tmp _ " \
                                          + str.encode(self.data_to_send)
-
-                    # + (self.counter).to_bytes(2, byteorder="big") \
-
-                    self.counter += 1
-
-                    print("sending", self._send_buffer)
-                    # print(type(self._send_buffer))
 
                     self._request_queued = True
 
@@ -103,10 +94,9 @@ class Client:
 
                     # self._request_queued = False
 
-
         def close(self):
             print("closing connection to", self.address)
-
+            print()
             self.selector.unregister(self.sock)
 
             self.sock.close()
