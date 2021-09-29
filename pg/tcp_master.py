@@ -23,7 +23,7 @@ class Server:
             # events = selectors.EVENT_WRITE
             # self.selector.modify(self.sock, events, data=self)
 
-            self._send_buffer += b"teddy bear"
+            self._send_buffer += b"teddy bear " + data
 
             print("sending", repr(self._send_buffer), "to", self.addr)
             sent = self.sock.send(self._send_buffer)

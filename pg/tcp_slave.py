@@ -4,8 +4,8 @@ import selectors
 
 class Client:
 
-    def __init__(self, host="127.0.0.1", port=65432):
-        
+    def driver(self, host, port, payload=None):
+
         sel = selectors.DefaultSelector()
 
         address = (host, port)
@@ -16,6 +16,11 @@ class Client:
         events = selectors.EVENT_READ | selectors.EVENT_WRITE
         message = self.Message(sel, sock, address)
         sel.register(sock, events, data=message)
+
+        self.message = message
+
+        if payload:
+            message.set_data(payload)
 
         try:
             while True:
@@ -33,7 +38,27 @@ class Client:
         finally:
             sel.close()
 
+    def __init__(self, host="127.0.0.1", port=65432):
+        self.host = host
+        self.port = port
+
+        self.driver(host, port)
+
+
+    def send(self, payload):
+        print("prepare", payload)
+
+        self.driver(self.host, self.port, payload)
+
+        # self.message.set_data(payload)
+        #
+        # self.message.process_events(mask=0)
+
     class Message:
+
+        def set_data(self, data):
+            self.data_to_send = data
+
         def __init__(self, selector, sock, address):
             self.selector = selector
             self.sock = sock
@@ -42,6 +67,7 @@ class Client:
             self._send_buffer = b""
             self._request_queued = False
             self.counter = 0
+            self.data_to_send = "f"
 
             print("new message instanced")
 
@@ -54,8 +80,15 @@ class Client:
 
             if mask & selectors.EVENT_WRITE:
                 if not self._request_queued:
-                    self._send_buffer += b"message 6"
+                    self._send_buffer += b"tmp _ " \
+                                         + str.encode(self.data_to_send)
+
+                    # + (self.counter).to_bytes(2, byteorder="big") \
+
                     self.counter += 1
+
+                    print("sending", self._send_buffer)
+                    # print(type(self._send_buffer))
 
                     self._request_queued = True
 
@@ -68,6 +101,9 @@ class Client:
                         events = selectors.EVENT_READ
                         self.selector.modify(self.sock, events, data=self)
 
+                    # self._request_queued = False
+
+
         def close(self):
             print("closing connection to", self.address)
 
@@ -79,7 +115,14 @@ class Client:
 
 def main():
 
-    Client()
+    client = Client()
+    client.send("Everest")
+    client.send("Aconcagua")
+    client.send("McKinley")
+    client.send("Kilimanjaro")
+    client.send("Elbrus")
+    client.send("Vinson")
+    client.send("Carstensz Pyramid")
 
 
 if __name__ == '__main__':
