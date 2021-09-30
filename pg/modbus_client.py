@@ -1,3 +1,5 @@
+import codecs
+
 import hat
 import click
 import ipaddress
@@ -136,6 +138,22 @@ class ModbusClient(Client):
 
             print(len(response))
             print("sep", response)
+
+            c = "".join([i for i in response])
+            print("hex", c)
+
+            last_three = c[-3:]
+            while last_three[0] == "0":
+                last_three = last_three[1:]
+
+            print("last", last_three)
+
+
+            c = c[:-3] + last_three
+            print(c)
+
+            # print(c.decode("hex"))
+            print(codecs.decode(c, "hex").decode("utf-8"))
             # print(org_p)
             # print(response)
 
