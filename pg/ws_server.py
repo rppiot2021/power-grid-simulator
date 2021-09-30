@@ -30,10 +30,10 @@ async def init_server():
 
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-    print("connect on ws://"+server.domain_name+":" + str(server.port))
+    print("connect on ws://" + server.host_name + ":" + str(server.port))
 
     asyncio.get_event_loop().run_until_complete(
-        websockets.serve(server.echo, server.domain_name, server.port))
+        websockets.serve(server.echo, server.host_name, server.port))
     asyncio.get_event_loop().run_forever()
 
     return server

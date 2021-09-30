@@ -195,7 +195,7 @@ class TCPServer(Server):
         super(TCPServer, self).__init__(domain_name, port)
 
         self.sel = selectors.DefaultSelector()
-        address = (self.domain_name, self.port)
+        address = (self.host_name, self.port)
         lsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # Avoid bind() exception: OSError: [Errno 48] Address already in use
         lsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
