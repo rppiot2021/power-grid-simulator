@@ -75,9 +75,9 @@ class Message:
         self, *, content_bytes, content_type, content_encoding
     ):
         jsonheader = {
-            "byteorder": sys.byteorder,
-            "content-type": content_type,
-            "content-encoding": content_encoding,
+            # "byteorder": sys.byteorder,
+            # "content-type": content_type,
+            # "content-encoding": content_encoding,
             "content-length": len(content_bytes),
         }
         jsonheader_bytes = self._json_encode(jsonheader, "utf-8")
@@ -97,6 +97,8 @@ class Message:
     def process_events(self, mask):
         if mask & selectors.EVENT_READ:
             self.read()
+
+            print("req", self.request)
         if mask & selectors.EVENT_WRITE:
             self.write()
 
@@ -155,15 +157,12 @@ class Message:
     def process_jsonheader(self):
         hdrlen = self._jsonheader_len
         if len(self._recv_buffer) >= hdrlen:
+
             self.jsonheader = self._json_decode(
                 self._recv_buffer[:hdrlen], "utf-8"
             )
+
             self._recv_buffer = self._recv_buffer[hdrlen:]
-            for reqhdr in (
-                "content-length",
-            ):
-                if reqhdr not in self.jsonheader:
-                    raise ValueError(f'Missing required header "{reqhdr}".')
 
     def process_request(self):
         content_len = self.jsonheader["content-length"]

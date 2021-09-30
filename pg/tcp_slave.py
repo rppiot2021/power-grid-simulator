@@ -76,9 +76,6 @@ class Message:
         self, *, content_bytes, content_type, content_encoding
     ):
         jsonheader = {
-            # "byteorder": sys.byteorder,
-            # "content-type": content_type,
-            # "content-encoding": content_encoding,
             "content-length": len(content_bytes),
         }
         jsonheader_bytes = self._json_encode(jsonheader, "utf-8")
@@ -93,8 +90,12 @@ class Message:
     def process_events(self, mask):
         if mask & selectors.EVENT_READ:
             self.read()
+
+            print("got", self.response)
         if mask & selectors.EVENT_WRITE:
             self.write()
+
+        return self.response
 
     def read(self):
         self._read()
@@ -120,7 +121,6 @@ class Message:
             if not self._send_buffer:
                 # Set selector to listen for read events, we're done writing.
                 self._set_selector_events_mask("r")
-                # self._set_selector_events_mask("rw")
 
     def close(self):
         print("closing connection to", self.addr)
@@ -173,14 +173,14 @@ class Message:
                 self._recv_buffer[:hdrlen], "utf-8"
             )
             self._recv_buffer = self._recv_buffer[hdrlen:]
-            for reqhdr in (
-                "byteorder",
-                "content-length",
-                "content-type",
-                "content-encoding",
-            ):
-                if reqhdr not in self.jsonheader:
-                    raise ValueError(f'Missing required header "{reqhdr}".')
+            # for reqhdr in (
+            #     # "byteorder",
+            #     "content-length",
+            #     # "content-type",
+            #     # "content-encoding",
+            # ):
+            #     if reqhdr not in self.jsonheader:
+            #         raise ValueError(f'Missing required header "{reqhdr}".')
 
     def process_response(self):
         content_len = self.jsonheader["content-length"]
@@ -192,7 +192,7 @@ class Message:
         # Binary or unknown content-type
         self.response = data
         print(
-            f'received {self.jsonheader["content-type"]} response from',
+            f'received  response from',
             self.addr,
         )
         self._process_response_binary_content()
@@ -202,11 +202,18 @@ class Message:
 
 class TCPClient(Client):
 
+    def __init__(self, domain_name, host):
+        super(TCPClient, self).__init__(domain_name, host)
+
+        self.rec_list = []
+
     def send(self, payload):
-        pass
+
+        self.driver(payload)
 
     def receive(self):
-        pass
+
+        return self.rec_list
 
     @staticmethod
     def create_request(msg_payload):
@@ -226,9 +233,8 @@ class TCPClient(Client):
         message = Message(sel, sock, addr, request)
         sel.register(sock, events, data=message)
 
-    def driver(self):
+    def driver(self, payload):
         sel = selectors.DefaultSelector()
-        payload = "tmp 1234567890"
         request = self.create_request(msg_payload=payload)
         self.start_connection(request, sel)
 
@@ -244,13 +250,18 @@ class TCPClient(Client):
                     message = key.data
                     print("message", message)
                     try:
-                        message.process_events(mask)
+                        result = message.process_events(mask)
+                        print("result", result)
+
+                        if result:
+                            self.rec_list.append(result)
                     except:
                         print(
                             "main: error: exception for",
                             f"{message.addr}:\n{traceback.format_exc()}",
                         )
                         message.close()
+                    print()
 
                 if not sel.get_map():
                     print("not get map")
@@ -264,7 +275,10 @@ class TCPClient(Client):
 
 def main():
     tcp_client = TCPClient("127.0.0.1", 4567)
-    tcp_client.driver()
+    tcp_client.send("tmp 1234567890")
+    tcp_client.send("aaaaa bbbb ccc dd e")
+
+    print(tcp_client.receive())
 
 
 if __name__ == '__main__':
