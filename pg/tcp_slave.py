@@ -1,15 +1,11 @@
-import sys
-import selectors
 import json
 import io
 import struct
-
-
-
 import sys
 import socket
 import selectors
 import traceback
+from client import Client
 
 
 class Message:
@@ -24,6 +20,9 @@ class Message:
         self._jsonheader_len = None
         self.jsonheader = None
         self.response = None
+
+    def __str__(self):
+        return str(self._recv_buffer) + ";" + str(self._send_buffer)
 
     def _set_selector_events_mask(self, mode):
         """Set selector to listen for events: mode is 'r', 'w', or 'rw'."""
@@ -77,20 +76,15 @@ class Message:
         self, *, content_bytes, content_type, content_encoding
     ):
         jsonheader = {
-            "byteorder": sys.byteorder,
-            "content-type": content_type,
-            "content-encoding": content_encoding,
+            # "byteorder": sys.byteorder,
+            # "content-type": content_type,
+            # "content-encoding": content_encoding,
             "content-length": len(content_bytes),
         }
         jsonheader_bytes = self._json_encode(jsonheader, "utf-8")
         message_hdr = struct.pack(">H", len(jsonheader_bytes))
         message = message_hdr + jsonheader_bytes + content_bytes
         return message
-
-    def _process_response_json_content(self):
-        content = self.response
-        result = content.get("result")
-        print(f"got result: {result}")
 
     def _process_response_binary_content(self):
         content = self.response
@@ -126,6 +120,7 @@ class Message:
             if not self._send_buffer:
                 # Set selector to listen for read events, we're done writing.
                 self._set_selector_events_mask("r")
+                # self._set_selector_events_mask("rw")
 
     def close(self):
         print("closing connection to", self.addr)
@@ -152,18 +147,13 @@ class Message:
         content = self.request["content"]
         content_type = self.request["type"]
         content_encoding = self.request["encoding"]
-        if content_type == "text/json":
-            req = {
-                "content_bytes": self._json_encode(content, content_encoding),
-                "content_type": content_type,
-                "content_encoding": content_encoding,
-            }
-        else:
-            req = {
-                "content_bytes": content,
-                "content_type": content_type,
-                "content_encoding": content_encoding,
-            }
+
+        req = {
+            "content_bytes": content,
+            "content_type": content_type,
+            "content_encoding": content_encoding,
+        }
+
         message = self._create_message(**req)
         self._send_buffer += message
         self._request_queued = True
@@ -198,81 +188,85 @@ class Message:
             return
         data = self._recv_buffer[:content_len]
         self._recv_buffer = self._recv_buffer[content_len:]
-        if self.jsonheader["content-type"] == "text/json":
-            encoding = self.jsonheader["content-encoding"]
-            self.response = self._json_decode(data, encoding)
-            print("received response", repr(self.response), "from", self.addr)
-            self._process_response_json_content()
-        else:
-            # Binary or unknown content-type
-            self.response = data
-            print(
-                f'received {self.jsonheader["content-type"]} response from',
-                self.addr,
-            )
-            self._process_response_binary_content()
+
+        # Binary or unknown content-type
+        self.response = data
+        print(
+            f'received {self.jsonheader["content-type"]} response from',
+            self.addr,
+        )
+        self._process_response_binary_content()
         # Close when response has been processed
         self.close()
 
-sel = selectors.DefaultSelector()
 
+class TCPClient(Client):
 
-def create_request(action, value):
-    if action == "search":
-        return dict(
-            type="text/json",
-            encoding="utf-8",
-            content=dict(action=action, value=value),
-        )
-    else:
+    def send(self, payload):
+        pass
+
+    def receive(self):
+        pass
+
+    @staticmethod
+    def create_request(msg_payload):
         return dict(
             type="binary/custom-client-binary-type",
             encoding="binary",
-            content=bytes(action + value, encoding="utf-8"),
+            content=bytes(msg_payload, encoding="utf-8"),
         )
 
+    def start_connection(self, request, sel):
+        addr = (self.domain_name, self.port)
+        print("starting connection to", addr)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setblocking(False)
+        sock.connect_ex(addr)
+        events = selectors.EVENT_READ | selectors.EVENT_WRITE
+        message = Message(sel, sock, addr, request)
+        sel.register(sock, events, data=message)
 
-def start_connection(host, port, request):
-    addr = (host, port)
-    print("starting connection to", addr)
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.setblocking(False)
-    sock.connect_ex(addr)
-    events = selectors.EVENT_READ | selectors.EVENT_WRITE
-    message = Message(sel, sock, addr, request)
-    sel.register(sock, events, data=message)
+    def driver(self):
+        sel = selectors.DefaultSelector()
+        payload = "tmp 1234567890"
+        request = self.create_request(msg_payload=payload)
+        self.start_connection(request, sel)
+
+        try:
+            while True:
+                events = sel.select(timeout=1)
+                print("get map", sel.get_map())
+                print("events", events)
+                for key, mask in events:
+                    print("key", key)
+                    print("mask", mask)
+
+                    message = key.data
+                    print("message", message)
+                    try:
+                        message.process_events(mask)
+                    except:
+                        print(
+                            "main: error: exception for",
+                            f"{message.addr}:\n{traceback.format_exc()}",
+                        )
+                        message.close()
+
+                if not sel.get_map():
+                    print("not get map")
+                    break
+
+        except KeyboardInterrupt:
+            print("caught keyboard interrupt, exiting")
+        finally:
+            sel.close()
 
 
-# if len(sys.argv) != 5:
-#     print("usage:", sys.argv[0], "<host> <port> <action> <value>")
-#     sys.exit(1)
+def main():
+    tcp_client = TCPClient("127.0.0.1", 4567)
+    tcp_client.driver()
 
-host = "127.0.0.1"
-port = 4567
-action = "search"
-value = "tmp"
-# host, port = sys.argv[1], int(sys.argv[2])
-# action, value = sys.argv[3], sys.argv[4]
-request = create_request(action, value)
-start_connection(host, port, request)
 
-try:
-    while True:
-        events = sel.select(timeout=1)
-        for key, mask in events:
-            message = key.data
-            try:
-                message.process_events(mask)
-            except Exception:
-                print(
-                    "main: error: exception for",
-                    f"{message.addr}:\n{traceback.format_exc()}",
-                )
-                message.close()
-        # Check for a socket being monitored to continue.
-        if not sel.get_map():
-            break
-except KeyboardInterrupt:
-    print("caught keyboard interrupt, exiting")
-finally:
-    sel.close()
+if __name__ == '__main__':
+    main()
+

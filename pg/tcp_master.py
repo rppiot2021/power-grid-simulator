@@ -1,17 +1,12 @@
-import sys
-import selectors
 import json
 import io
 import struct
-
-
-
 import sys
 import socket
 import selectors
 import traceback
+from server import Server
 
-# import libserver
 
 class Message:
     def __init__(self, selector, sock, addr):
@@ -90,22 +85,6 @@ class Message:
         message = message_hdr + jsonheader_bytes + content_bytes
         return message
 
-    def _create_response_json_content(self):
-        action = self.request.get("action")
-        if action == "search":
-            query = self.request.get("value")
-            answer = request_search.get(query) or f'No match for "{query}".'
-            content = {"result": answer}
-        else:
-            content = {"result": f'Error: invalid action "{action}".'}
-        content_encoding = "utf-8"
-        response = {
-            "content_bytes": self._json_encode(content, content_encoding),
-            "content_type": "text/json",
-            "content_encoding": content_encoding,
-        }
-        return response
-
     def _create_response_binary_content(self):
         response = {
             "content_bytes": b"First 10 bytes of request: "
@@ -123,6 +102,8 @@ class Message:
 
     def read(self):
         self._read()
+
+        print("got", self._recv_buffer)
 
         if self._jsonheader_len is None:
             self.process_protoheader()
@@ -143,7 +124,7 @@ class Message:
         self._write()
 
     def close(self):
-        print("closing connection to", self.addr)
+        print("closing connection to", self.addr, "\n")
         try:
             self.selector.unregister(self.sock)
         except Exception as e:
@@ -179,10 +160,7 @@ class Message:
             )
             self._recv_buffer = self._recv_buffer[hdrlen:]
             for reqhdr in (
-                "byteorder",
                 "content-length",
-                "content-type",
-                "content-encoding",
             ):
                 if reqhdr not in self.jsonheader:
                     raise ValueError(f'Missing required header "{reqhdr}".')
@@ -193,83 +171,73 @@ class Message:
             return
         data = self._recv_buffer[:content_len]
         self._recv_buffer = self._recv_buffer[content_len:]
-        if self.jsonheader["content-type"] == "text/json":
-            encoding = self.jsonheader["content-encoding"]
-            self.request = self._json_decode(data, encoding)
-            print("received request", repr(self.request), "from", self.addr)
-        else:
-            # Binary or unknown content-type
-            self.request = data
-            print(
-                f'received {self.jsonheader["content-type"]} request from',
-                self.addr,
-            )
+
+        # Binary or unknown content-type
+        self.request = data
+        print(
+            f'received request from',
+            self.addr,
+        )
         # Set selector to listen for write events, we're done reading.
         self._set_selector_events_mask("w")
 
     def create_response(self):
-        if self.jsonheader["content-type"] == "text/json":
-            response = self._create_response_json_content()
-        else:
-            # Binary or unknown content-type
-            response = self._create_response_binary_content()
+
+        # Binary or unknown content-type
+        response = self._create_response_binary_content()
         message = self._create_message(**response)
         self.response_created = True
         self._send_buffer += message
 
 
-request_search = {
-    "morpheus": "Follow the white rabbit. \U0001f430",
-    "ring": "In the caves beneath the Misty Mountains. \U0001f48d",
-    "\U0001f436": "\U0001f43e Playing ball! \U0001f3d0",
-}
+class TCPServer(Server):
 
-sel = selectors.DefaultSelector()
+    def __init__(self, domain_name, port):
+        super(TCPServer, self).__init__(domain_name, port)
 
+        self.sel = selectors.DefaultSelector()
+        address = (self.domain_name, self.port)
+        lsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # Avoid bind() exception: OSError: [Errno 48] Address already in use
+        lsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        lsock.bind(address)
+        lsock.listen()
+        print("listening on", address)
+        lsock.setblocking(False)
+        self.sel.register(lsock, selectors.EVENT_READ, data=None)
 
-def accept_wrapper(sock):
-    conn, addr = sock.accept()  # Should be ready to read
-    print("accepted connection from", addr)
-    conn.setblocking(False)
-    message = Message(sel, conn, addr)
-    sel.register(conn, selectors.EVENT_READ, data=message)
+        try:
+            while True:
+                events = self.sel.select(timeout=None)
+                for key, mask in events:
+                    if key.data is None:
+                        self.accept_wrapper(key.fileobj)
+                    else:
+                        message = key.data
+                        try:
+                            message.process_events(mask)
+                        except Exception:
+                            print(
+                                "main: error: exception for",
+                                f"{message.addr}:\n{traceback.format_exc()}",
+                            )
+                            message.close()
+        except KeyboardInterrupt:
+            print("caught keyboard interrupt, exiting")
+        finally:
+            self.sel.close()
 
-
-# if len(sys.argv) != 3:
-#     print("usage:", sys.argv[0], "<host> <port>")
-#     sys.exit(1)
-
-# host, port = sys.argv[1], int(sys.argv[2])
-host = "127.0.0.1"
-port = 4567
-lsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# Avoid bind() exception: OSError: [Errno 48] Address already in use
-lsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-lsock.bind((host, port))
-lsock.listen()
-print("listening on", (host, port))
-lsock.setblocking(False)
-sel.register(lsock, selectors.EVENT_READ, data=None)
-
-try:
-    while True:
-        events = sel.select(timeout=None)
-        for key, mask in events:
-            if key.data is None:
-                accept_wrapper(key.fileobj)
-            else:
-                message = key.data
-                try:
-                    message.process_events(mask)
-                except Exception:
-                    print(
-                        "main: error: exception for",
-                        f"{message.addr}:\n{traceback.format_exc()}",
-                    )
-                    message.close()
-except KeyboardInterrupt:
-    print("caught keyboard interrupt, exiting")
-finally:
-    sel.close()
+    def accept_wrapper(self, sock):
+        conn, addr = sock.accept()  # Should be ready to read
+        print("accepted connection from", addr)
+        conn.setblocking(False)
+        message = Message(self.sel, conn, addr)
+        self.sel.register(conn, selectors.EVENT_READ, data=message)
 
 
+def main():
+    TCPServer("127.0.0.1", 4567)
+
+
+if __name__ == '__main__':
+    main()

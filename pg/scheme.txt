@@ -4,6 +4,10 @@ master
 slave
     client = Client(host, port)
 
-    await client.send("temp val send")
+    client.send("temp val send")
 
-    tmp_r = await client.receive()
+    tmp_r = client.receive()
+
+//todo 61850
+
+
