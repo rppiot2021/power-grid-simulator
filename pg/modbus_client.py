@@ -16,6 +16,12 @@ from client import Client
 
 class ModbusClient(Client):
 
+    def send(self, payload):
+        return
+
+    def receive(self):
+        return
+
     @asynccontextmanager
     async def tcm_master_connection(self, ip, port):
         client = None
@@ -29,7 +35,8 @@ class ModbusClient(Client):
             if client:
                 client.close()
 
-    def hex_parts_as_int_to_ip(self, parts):
+    @staticmethod
+    def hex_parts_as_int_to_ip(parts):
         ip = ""
         for part in parts:
             first = int(('0x%04x' % part)[:4],0)
@@ -38,7 +45,8 @@ class ModbusClient(Client):
 
         return ip[:-1]
 
-    def ip_to_hex_parts_as_int(self, ip):
+    @staticmethod
+    def ip_to_hex_parts_as_int( ip):
         parts = ip.split(".")
         parts = ['0x%02x' % int(i) for i in parts]
         containers = []
@@ -50,18 +58,57 @@ class ModbusClient(Client):
         async with self.tcm_master_connection(ip, 5021) as client:
             print("Successful connection ->", client)
 
-            parts = self.ip_to_hex_parts_as_int(slave)
-            pr = self.print_table()
+            # parts = self.ip_to_hex_parts_as_int(slave)
+            #
+            #
+            # print("sending", parts)
 
-            pr.print_row("original", slave)
-            pr.print_row("parts", str(parts))
+            parts = "The quick brown fox jumps over the lazy dog".encode("utf-8").hex()
 
-            pr.print_space()
+            # org_p = parts
+            # parts = [i for i in ]
+            print("hex", parts)
+            new_p = []
+            b = []
+            for i in parts:
+                b.append(i)
+
+                if len("".join([i for i in b])) == 3:
+                    new_p.append("".join([i for i in b]))
+
+                    b = []
+
+            if b == []:
+                pass
+            if len(b) == 1:
+                new_p.append("00"+"".join(b))
+            elif len(b) == 2:
+                new_p.append("0" +"".join(b))
+
+            # new_p.append("".join(b))
+
+            print("sep", new_p)
+            new_p = [int("0x"+ i, 16) for i in new_p]
+
+            # print("new parts", new_p)
+
+            parts = new_p
+
+            print("parts", parts)
+            # print(parts)
+            pr = self.TablePrinter()
+
+            # pr.print_row("original", slave)
+            # pr.print_row("parts", str(parts))
+            #
+            # pr.print_space()
 
             response = await client.write(1,
                                           DataType.HOLDING_REGISTER,
                                           40000,
                                           parts)
+
+            print(80 * "-")
 
             if response is not None:
                 print("Write error", response.name)
@@ -70,13 +117,32 @@ class ModbusClient(Client):
             response = await client.read(1,
                                          DataType.HOLDING_REGISTER,
                                          40000,
-                                         2)
-            pr.print_row("Decoded", str(response))
-            pr.print_row("Response",self.hex_parts_as_int_to_ip(response))
+                                         len(parts))
 
-            pr.end()
 
-    class print_table:
+            # pr.print_row("Decoded", str(response))
+            # pr.print_row("Response",self.hex_parts_as_int_to_ip(response))
+            #
+            # pr.end()
+
+            print("p new",str(response))
+
+            print(parts == response)
+            # print("".join([str(i) for  i in response]))
+
+            print(len(response))
+
+            response =[('0x%03x' % int(i))[2:] for i in response]
+
+            print(len(response))
+            print("sep", response)
+            # print(org_p)
+            # print(response)
+
+            # print("response,", response)
+
+
+    class TablePrinter:
         def __init__(self):
             self.start = False
 
