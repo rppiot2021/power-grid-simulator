@@ -1,25 +1,19 @@
-import asyncio
-import codecs
 from contextlib import asynccontextmanager
-
 import click
 import hat
 import hat.drivers.modbus as mod
 import hat.drivers.tcp
 from hat.drivers.modbus.common import DataType
-
 from client import Client
 
-
-# import traceback
-# import urllib
-# from urllib.parse import urlparse
+import random
+import string
 
 
 class ModbusClient(Client):
 
-    def send(self, payload):
-        return
+    # def send(self, payload):
+    #     return
 
     def receive(self):
         return self._recv_list
@@ -27,82 +21,98 @@ class ModbusClient(Client):
     async def _run(self):
         print("run")
 
-        ip = "127.0.0.1"
-
-        print("creating client")
-
         client = await mod.create_tcp_master(
                 mod.ModbusType.TCP,
-                hat.drivers.tcp.Address(ip, 5021))
+                hat.drivers.tcp.Address(self.domain_name, self.port))
 
-        print("getting response")
+        print("client instantiated")
 
-        r_response = await client.read(
-            1,
-            DataType.HOLDING_REGISTER,
-            40000,
-            # len
-            100
-        )
+        old_val = None
 
-        print("repsonse", r_response)
-
-        self._recv_list.append(ModbusClient.split_int_to_str(r_response))
+        # while True:
+        #
+        #     r_header = await client.read(
+        #         1,
+        #         DataType.HOLDING_REGISTER,
+        #         40000,
+        #         self.header_len
+        #     )
+        #
+        #     expected_len = r_header[0]
+        #
+        #     r_body = await client.read(
+        #         1,
+        #         DataType.HOLDING_REGISTER,
+        #         40000 + self.header_len,
+        #         expected_len
+        #     )
+        #
+        #     print(r_header, r_body)
+        #
+        #     msg = self.split_int_to_str(r_body)
+        #
+        #     print("reading", msg)
+        #
+        #     if old_val == msg:
+        #         print("already read this, not updating")
+        #
+        #     else:
+        #         self._recv_list.append(msg)
 
         client.close()
 
     @asynccontextmanager
-    async def tcm_master_connection(self, ip, port):
+    async def tcm_master_connection(self):
         client = None
         try:
             client = await mod.create_tcp_master(
                 mod.ModbusType.TCP,
-                hat.drivers.tcp.Address(ip, 5021))
+                hat.drivers.tcp.Address(self.domain_name, self.port))
 
             yield client
         finally:
             if client:
                 client.close()
 
-    @staticmethod
-    def str_to_split_int(payload):
+    def str_to_split_int(self, payload):
         # print("input :", payload)
+
+        # todo test whole sys with diff vals
 
         payload_hex = payload.encode("utf-8").hex()
         # print("hex   :", payload_hex)
 
-        three_div_count = len(payload_hex) % 3
+        three_div_count = len(payload_hex) % self.fragment_len
 
         if not three_div_count == 0:
 
-            to_add = 3 - three_div_count
+            to_add = self.fragment_len - three_div_count
 
             payload_hex = to_add * "0" + payload_hex
 
-        n = 3
+        n = self.fragment_len
         pl_hex_split = [payload_hex[i:i + n] for i in
                         range(0, len(payload_hex), n)]
 
-        injected_zero_count = 0
         # print("hex sp:", pl_hex_split)
 
         pl_int_split = [int("0x" + i, 16) for i in pl_hex_split]
 
         # print("pl int:", pl_int_split)
 
-        return pl_int_split, injected_zero_count
+        return pl_int_split
 
-    @staticmethod
-    def split_int_to_str(payload, injected_zero_count):
+    def split_int_to_str(self, payload):
         # print("pl int:", payload)
 
+        # fixme what is 2
         pl_hex_split = [('0x%03x' % int(i))[2:] for i in payload]
         # print("hex sp:", pl_hex_split)
 
         payload_hex = "".join(pl_hex_split)
         # print("tmp   :", payload_hex)
 
-        payload_hex = payload_hex[:3].lstrip("0") + payload_hex[3:]
+        payload_hex = payload_hex[:self.fragment_len].lstrip("0") + payload_hex[self.fragment_len:]
 
         # print("pl hex:", payload_hex)
 
@@ -110,121 +120,44 @@ class ModbusClient(Client):
 
         return output
 
-    async def connect(self, ip, payload):
-        async with self.tcm_master_connection(ip, 5021) as client:
+    async def send(self, payload):
+        async with self.tcm_master_connection() as client:
             # print("Successful connection ->", client)
             # print()
-            print("pyl", payload)
 
-            # payload = "The quick brown fox jumps over the lazy dog"
-            pl_int_split, injected_zero_count = self.str_to_split_int(payload)
+            address = payload[0]
+            payload = payload[1]
+
+            print("\twriting", payload)
+
+            pl_int_split = self.str_to_split_int(payload)
 
             '''
                 header
                     message len
             '''
 
-            # header = ModbusClient.str_to_split_int(str(len(pl_int_split)))
-            #
-            # print("header", header)
-
             header = [
                 len(pl_int_split),
                 # injected_zero_count
             ]
 
-            header_len = len(header)
-
             msg = header + pl_int_split
-
-            # print("sending", msg)
 
             w_response = await client.write(
                 1,
                 DataType.HOLDING_REGISTER,
-                40000,
+                # 40000,
+                address,
                 msg
             )
+
+            print("\t", msg)
 
             if w_response:
                 print("Write error", w_response.name)
                 return
 
-            # print(80 * "-")
-            # ///////////////////////////////////////////////////////////////////////////////////////////////////
-
-            r_header = await client.read(
-                1,
-                DataType.HOLDING_REGISTER,
-                40000,
-                header_len
-            )
-
-            # print("header:", r_header)
-
-            expected_len = r_header[0]
-            # injected_zero_count = r_header[1]
-
-            r_body = await client.read(
-                1,
-                DataType.HOLDING_REGISTER,
-                40000 + header_len,
-                expected_len
-            )
-
-            # print("r body:", r_body)
-
-            expected_len = ModbusClient.split_int_to_str(r_body, injected_zero_count=0)
-
-            print("msg", expected_len)
-
-
-            # r_response = await client.read(
-            #     1,
-            #     DataType.HOLDING_REGISTER,
-            #     40000,
-            #     self.max_msg_len
-            # )
-            #
-            # print("rec   :", r_response)
-            # print(ModbusClient.split_int_to_str(r_response))
-            #
-            # print(80 * "-")
-            # print(80 * "-")
-            # print(80 * "-")
-            #
-            # response_buffer = []
-            #
-            # offset = 40000
-            #
-            # while True:
-            #
-            #     r_response = await client.read(
-            #         1,
-            #         DataType.HOLDING_REGISTER,
-            #         offset,
-            #         1
-            #     )
-            #
-            #     r_response = r_response[0]
-            #
-            #     if r_response == 0:
-            #         break
-            #
-            #     offset += 1
-            #
-            #     response_buffer.append(r_response)
-            #
-            # print(response_buffer)
-            #
-            # print(ModbusClient.split_int_to_str(response_buffer))
-            #
-            # # output = self.split_int_to_str(r_response)
-            # # print("output:", output)
-
-
-import random
-import string
 
 def get_random_string(length):
     # choose from all lowercase letter
@@ -233,61 +166,57 @@ def get_random_string(length):
 
     return result_str
 
-async def async_main():
-    domain_name = "127.0.0.1"
-    slave_address = '1.0.0.1'
+
+async def async_main(domain_name, port):
 
     modbus_client = ModbusClient()
+
     modbus_client._recv_list = []
-
+    modbus_client.domain_name = domain_name
     modbus_client.max_msg_len = 100
+    # how many things are in it
+    modbus_client.header_len = 1
+    modbus_client.fragment_len = 3
+    modbus_client.port = int(port)
 
-    # modbus_client._group = hat.aio.Group()
-    # modbus_client._group.spawn(modbus_client._run)
+    modbus_client._group = hat.aio.Group()
+    modbus_client._group.spawn(modbus_client._run)
 
-    await modbus_client.connect(domain_name, "tmp val 1")
-    await modbus_client.connect(domain_name, "tmp val 2")
-    await modbus_client.connect(domain_name, "fnfofsonifni")
-    await modbus_client.connect(domain_name, "tmpffff val 2")
-
-    for msg in [
-        "xjfnwagxoeplewhawikscfoqlvvclombqwfklumoywsxlawdrjasosxozibbxhjlp",
-        "pwzwggoyuugtftmoksogwhkkduzcwccludztazxhyfautrfgrjjokfv",
-        "fqvnbusfjhzgkhpqankvuehugpyeveutimdpqqsvwzhvbcrtlmgolxudixeehlzqsmeunuxfwhgnxpbhkkvrocbbnjvhvmycxcykwalgptecjemjdrrjcyqzlqxvxjaqxbjlvywziujduzagoacuznnxelzwpzzwcrsxgkmomkevinciahyazjvxatzre",
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    dummy_data = {
+        0: "tmp val 1",
+        1000: "tmp val 2",
+        2000: "fnfofsonifni",
+        3000: "tmpffff val 2",
+        4000: "xjfnwagxoeplewhawikscfoqlvvclombqwfklumoywsxlawdrjasosxozibbxhjlp",
+        5000: "pwzwggoyuugtftmoksogwhkkduzcwccludztazxhyfautrfgrjjokfv",
+        6000: "fqvnbusfjhzgkhpqankvuehugpyeveutimdpqqsvwzhvbcrtlmgolxudixeehlzqsmeunuxfwhgnxpbhkkvrocbbnjvhvmycxcykwalgptecjemjdrrjcyqzlqxvxjaqxbjlvywziujduzagoacuznnxelzwpzzwcrsxgkmomkevinciahyazjvxatzre",
+        7000: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         # "fqvnbusfjhzgkhpqankvuehugpyeveutimdpqqsvwzhvbcrtlmgolxudixeehlzqsmeunuxfwhgnxpbhkkvrocbbnjvhvmycxcykwalgptecjemjdrrjcyqzlqxvxjaqxbjlvywziujduzagoacuznnxelzwpzzwcrsxgkmomkevinciahyazjvxatzres",
-    ]:
-        await modbus_client.connect(domain_name, msg)
+
+    }
+
+    for adr, msg in dummy_data.items():
+        await modbus_client.send((adr, msg))
 
     for i in range(9):
 
-        await modbus_client.connect(domain_name, get_random_string(random.randint(0, 150)))
-
-
-    # await asyncio.sleep(1)
-    # await asyncio.sleep(1)
-    # await asyncio.sleep(5)
-    # await asyncio.sleep(1)
-    # await asyncio.sleep(1)
-    # await asyncio.sleep(1)
-
-    # result = hat.aio.run_asyncio(modbus_client.connect(domain_name, slave_address))
-    # return result
-
-    # print("get", modbus_client.receive())
+        await modbus_client.send(get_random_string(random.randint(0, 150)))
 
     print()
-    print("responding")
+    print("receive queue")
 
-    [print(i) for  i in modbus_client.receive()]
+    [print(i) for i in modbus_client.receive()]
+
+    await modbus_client._group.wait_closed()
+
 
 @click.command()
-@click.option('--slave-address', default='1.0.0.1')
 @click.option('--domain-name',default='127.0.0.1')
 @click.option("--port", default="5021")
-def main(slave_address, domain_name, port):
+def main(domain_name, port):
 
-    hat.aio.run_asyncio(async_main())
+    hat.aio.run_asyncio(async_main(domain_name, port))
+
 
 if __name__ == '__main__':
     main()
