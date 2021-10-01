@@ -1,7 +1,7 @@
-master
+slave
     server = Server(host, port)
 
-slave
+master
     client = Client(host, port)
 
     client.send("temp val send")
