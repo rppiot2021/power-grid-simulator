@@ -22,22 +22,34 @@ class ModbusClient(Client):
         return
 
     def receive(self):
-        return
+        return self._recv_list
 
     async def _run(self):
         print("run")
 
-        async with self.tcm_master_connection("1.0.0.1", 5021) as client:
-            print("getting response")
+        ip = "127.0.0.1"
 
-            r_response = await client.read(
-                1,
-                DataType.HOLDING_REGISTER,
-                40000,
-                len(pl_int_split)
-            )
+        print("creating client")
 
-            print("response", r_response)
+        client = await mod.create_tcp_master(
+                mod.ModbusType.TCP,
+                hat.drivers.tcp.Address(ip, 5021))
+
+        print("getting response")
+
+        r_response = await client.read(
+            1,
+            DataType.HOLDING_REGISTER,
+            40000,
+            # len
+            100
+        )
+
+        print("repsonse", r_response)
+
+        self._recv_list.append(r_response)
+
+        client.close()
 
     @asynccontextmanager
     async def tcm_master_connection(self, ip, port):
@@ -89,12 +101,12 @@ class ModbusClient(Client):
 
         return output
 
-    async def connect(self, ip, slave):
+    async def connect(self, ip, payload):
         async with self.tcm_master_connection(ip, 5021) as client:
             print("Successful connection ->", client)
             print()
 
-            payload = "The quick brown fox jumps over the lazy dog"
+            # payload = "The quick brown fox jumps over the lazy dog"
             pl_int_split = self.str_to_split_int(payload)
 
             w_response = await client.write(
@@ -108,31 +120,51 @@ class ModbusClient(Client):
                 print("Write error", w_response.name)
                 return
 
-            print(80 * "-")
-
-            r_response = await client.read(
-                1,
-                DataType.HOLDING_REGISTER,
-                40000,
-                len(pl_int_split)
-            )
-
-            output = self.split_int_to_str(r_response)
-            print("output:", output)
-
-
-        # await asyncio.sleep(5)
+            # print(80 * "-")
+            #
+            # r_response = await client.read(
+            #     1,
+            #     DataType.HOLDING_REGISTER,
+            #     40000,
+            #     len(pl_int_split)
+            # )
+            #
+            # output = self.split_int_to_str(r_response)
+            # print("output:", output)
 
 
 async def async_main():
+    domain_name = "127.0.0.1"
+    slave_address = '1.0.0.1'
 
     modbus_client = ModbusClient()
+    modbus_client._recv_list = []
 
     modbus_client._group = hat.aio.Group()
     modbus_client._group.spawn(modbus_client._run)
 
+
+    await modbus_client.connect(domain_name, "tmp val 1")
+    await modbus_client.connect(domain_name, "tmp val 2")
+
+    await asyncio.sleep(1)
+    # await asyncio.sleep(1)
+    # await asyncio.sleep(5)
+    # await asyncio.sleep(1)
+    # await asyncio.sleep(1)
+    # await asyncio.sleep(1)
+
+
     # result = hat.aio.run_asyncio(modbus_client.connect(domain_name, slave_address))
     # return result
+
+
+    # print("get", modbus_client.receive())
+
+    print()
+    print("responding")
+
+    [print(i) for  i in modbus_client.receive()]
 
 @click.command()
 @click.option('--slave-address', default='1.0.0.1')
