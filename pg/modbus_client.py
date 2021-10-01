@@ -1,19 +1,18 @@
 import codecs
-
-import hat
-import click
-import ipaddress
-import hat.drivers.tcp
-import hat.drivers.modbus as mod
-from hat.drivers.modbus.common import DataType
 from contextlib import asynccontextmanager
+
+import click
+import hat
+import hat.drivers.modbus as mod
+import hat.drivers.tcp
+from hat.drivers.modbus.common import DataType
+
+from client import Client
 
 
 # import traceback
 # import urllib
 # from urllib.parse import urlparse
-
-from client import Client
 
 
 class ModbusClient(Client):
@@ -41,141 +40,78 @@ class ModbusClient(Client):
     def hex_parts_as_int_to_ip(parts):
         ip = ""
         for part in parts:
-            first = int(('0x%04x' % part)[:4],0)
-            second = int("0x" + ('0x%04x' % part)[4:],0)
+            first = int(('0x%04x' % part)[:4], 0)
+            second = int("0x" + ('0x%04x' % part)[4:], 0)
             ip = ip + f'{first}.{second}.'
 
         return ip[:-1]
 
     @staticmethod
-    def ip_to_hex_parts_as_int( ip):
+    def ip_to_hex_parts_as_int(ip):
         parts = ip.split(".")
         parts = ['0x%02x' % int(i) for i in parts]
         containers = []
         for f, s in zip(parts[0::2], parts[1::2]):
-            containers.append(int(f+s[2:],16))
+            containers.append(int(f + s[2:], 16))
         return containers
 
     async def connect(self, ip, slave):
         async with self.tcm_master_connection(ip, 5021) as client:
             print("Successful connection ->", client)
+            print()
 
-            # parts = self.ip_to_hex_parts_as_int(slave)
-            #
-            #
-            # print("sending", parts)
+            payload = "The quick brown fox jumps over the lazy dog"
+            print("input :", payload)
 
-            parts = "The quick brown fox jumps over the lazy dog".encode("utf-8").hex()
+            payload_hex = payload.encode("utf-8").hex()
+            print("hex   :", payload_hex)
 
-            # org_p = parts
-            # parts = [i for i in ]
-            print("hex", parts)
-            new_p = []
-            b = []
-            for i in parts:
-                b.append(i)
+            n = 3
+            pl_hex_split = [payload_hex[i:i + n] for i in
+                            range(0, len(payload_hex), n)]
 
-                if len("".join([i for i in b])) == 3:
-                    new_p.append("".join([i for i in b]))
+            print("hex sp:", pl_hex_split)
 
-                    b = []
+            pl_hex_split[-1] = pl_hex_split[-1].zfill(3)
 
-            if b == []:
-                pass
-            if len(b) == 1:
-                new_p.append("00"+"".join(b))
-            elif len(b) == 2:
-                new_p.append("0" +"".join(b))
+            pl_int_split = [int("0x" + i, 16) for i in pl_hex_split]
+            print("pl int:", pl_int_split)
 
-            # new_p.append("".join(b))
+            w_response = await client.write(
+                1,
+                DataType.HOLDING_REGISTER,
+                40000,
+                pl_int_split
+            )
 
-            print("sep", new_p)
-            new_p = [int("0x"+ i, 16) for i in new_p]
-
-            # print("new parts", new_p)
-
-            parts = new_p
-
-            print("parts", parts)
-            # print(parts)
-            pr = self.TablePrinter()
-
-            # pr.print_row("original", slave)
-            # pr.print_row("parts", str(parts))
-            #
-            # pr.print_space()
-
-            response = await client.write(1,
-                                          DataType.HOLDING_REGISTER,
-                                          40000,
-                                          parts)
+            if w_response:
+                print("Write error", w_response.name)
+                return
 
             print(80 * "-")
 
-            if response is not None:
-                print("Write error", response.name)
-                return
+            r_response = await client.read(
+                1,
+                DataType.HOLDING_REGISTER,
+                40000,
+                len(pl_int_split)
+            )
 
-            response = await client.read(1,
-                                         DataType.HOLDING_REGISTER,
-                                         40000,
-                                         len(parts))
+            print("pl int:", r_response)
 
+            pl_hex_split = [('0x%03x' % int(i))[2:] for i in r_response]
+            print("hex sp:", pl_hex_split)
 
-            # pr.print_row("Decoded", str(response))
-            # pr.print_row("Response",self.hex_parts_as_int_to_ip(response))
-            #
-            # pr.end()
+            payload_hex = "".join(pl_hex_split)
 
-            print("p new",str(response))
+            payload_hex = payload_hex[:-3] + payload_hex[-3:].strip("0")
 
-            print(parts == response)
-            # print("".join([str(i) for  i in response]))
+            print("pl hex:", payload_hex)
 
-            print(len(response))
+            # tmp = codecs.decode(payload_hex, "hex").decode("utf-8")
+            tmp = bytes.fromhex(payload_hex).decode('utf-8')
 
-            response =[('0x%03x' % int(i))[2:] for i in response]
-
-            print(len(response))
-            print("sep", response)
-
-            c = "".join([i for i in response])
-            print("hex", c)
-
-            last_three = c[-3:]
-            while last_three[0] == "0":
-                last_three = last_three[1:]
-
-            print("last", last_three)
-
-
-            c = c[:-3] + last_three
-            print(c)
-
-            # print(c.decode("hex"))
-            print(codecs.decode(c, "hex").decode("utf-8"))
-            # print(org_p)
-            # print(response)
-
-            # print("response,", response)
-
-
-    class TablePrinter:
-        def __init__(self):
-            self.start = False
-
-        def print_row(self, info, data):
-            if not self.start:
-                print(f'╔{"═" * 10:10}╤{"═" * 15:15}╗')
-            self.start = True
-            print(f'║{info:10}│{data:>15}║')
-
-        def print_space(self):
-            print(f'╟{"─" * 10:10}┼{"─" * 15:15}╢')
-
-        def end(self):
-            print(f'╚{"═" * 10:10}╧{"═" * 15:15}╝')
-            self.start = False
+            print("output:", tmp)
 
 
 @click.command()
@@ -197,4 +133,3 @@ def main(slave_address, ip):
 
 if __name__ == '__main__':
     main()
-
