@@ -66,17 +66,14 @@ class ModbusClient(Client):
 
     @staticmethod
     def str_to_split_int(payload):
-        print("input :", payload)
+        # print("input :", payload)
 
         payload_hex = payload.encode("utf-8").hex()
-        print("hex   :", payload_hex)
-
-        # print(len(payload_hex) % 3)
+        # print("hex   :", payload_hex)
 
         three_div_count = len(payload_hex) % 3
 
         if not three_div_count == 0:
-            # print(three_div_count)
 
             to_add = 3 - three_div_count
 
@@ -86,20 +83,12 @@ class ModbusClient(Client):
         pl_hex_split = [payload_hex[i:i + n] for i in
                         range(0, len(payload_hex), n)]
 
-        # before_filling = len(pl_hex_split[-1])
-        #
-        # pl_hex_split[-1] = pl_hex_split[-1].zfill(3)
-        #
-        # after_filling = len(pl_hex_split[-1])
-
         injected_zero_count = 0
-        # injected_zero_count = after_filling - before_filling
-        # print("injected", injected_zero_count)
-        print("hex sp:", pl_hex_split)
+        # print("hex sp:", pl_hex_split)
 
         pl_int_split = [int("0x" + i, 16) for i in pl_hex_split]
 
-        print("pl int:", pl_int_split)
+        # print("pl int:", pl_int_split)
 
         return pl_int_split, injected_zero_count
 
@@ -111,9 +100,9 @@ class ModbusClient(Client):
         # print("hex sp:", pl_hex_split)
 
         payload_hex = "".join(pl_hex_split)
+        # print("tmp   :", payload_hex)
 
-        if not injected_zero_count == 0:
-            payload_hex = payload_hex[:-3] + payload_hex[-3:].strip("0")
+        payload_hex = payload_hex[:3].lstrip("0") + payload_hex[3:]
 
         # print("pl hex:", payload_hex)
 
@@ -124,8 +113,8 @@ class ModbusClient(Client):
     async def connect(self, ip, payload):
         async with self.tcm_master_connection(ip, 5021) as client:
             # print("Successful connection ->", client)
-            print()
-            # print("pyl", payload)
+            # print()
+            print("pyl", payload)
 
             # payload = "The quick brown fox jumps over the lazy dog"
             pl_int_split, injected_zero_count = self.str_to_split_int(payload)
@@ -171,12 +160,7 @@ class ModbusClient(Client):
                 header_len
             )
 
-
-            # 23466 -> 234 066
-            # 234066 -> 234 066
-
-
-            # print("r header", r_header)
+            # print("header:", r_header)
 
             expected_len = r_header[0]
             # injected_zero_count = r_header[1]
@@ -188,7 +172,7 @@ class ModbusClient(Client):
                 expected_len
             )
 
-            # print("r body  ", r_body)
+            # print("r body:", r_body)
 
             expected_len = ModbusClient.split_int_to_str(r_body, injected_zero_count=0)
 
@@ -246,7 +230,6 @@ def get_random_string(length):
     # choose from all lowercase letter
     letters = string.ascii_lowercase
     result_str = ''.join(random.choice(letters) for i in range(length))
-    print("Random string of length", length, "is:", result_str)
 
     return result_str
 
@@ -267,12 +250,18 @@ async def async_main():
     await modbus_client.connect(domain_name, "fnfofsonifni")
     await modbus_client.connect(domain_name, "tmpffff val 2")
 
-    msg = "xjfnwagxoeplewhawikscfoqlvvclombqwfklumoywsxlawdrjasosxozibbxhjlp"
-    await modbus_client.connect(domain_name, msg)
+    for msg in [
+        "xjfnwagxoeplewhawikscfoqlvvclombqwfklumoywsxlawdrjasosxozibbxhjlp",
+        "pwzwggoyuugtftmoksogwhkkduzcwccludztazxhyfautrfgrjjokfv",
+        "fqvnbusfjhzgkhpqankvuehugpyeveutimdpqqsvwzhvbcrtlmgolxudixeehlzqsmeunuxfwhgnxpbhkkvrocbbnjvhvmycxcykwalgptecjemjdrrjcyqzlqxvxjaqxbjlvywziujduzagoacuznnxelzwpzzwcrsxgkmomkevinciahyazjvxatzre",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        # "fqvnbusfjhzgkhpqankvuehugpyeveutimdpqqsvwzhvbcrtlmgolxudixeehlzqsmeunuxfwhgnxpbhkkvrocbbnjvhvmycxcykwalgptecjemjdrrjcyqzlqxvxjaqxbjlvywziujduzagoacuznnxelzwpzzwcrsxgkmomkevinciahyazjvxatzres",
+    ]:
+        await modbus_client.connect(domain_name, msg)
 
-    for i in range(100):
+    for i in range(9):
 
-        await modbus_client.connect(domain_name, get_random_string(random.randint(0, 100)))
+        await modbus_client.connect(domain_name, get_random_string(random.randint(0, 150)))
 
 
     # await asyncio.sleep(1)
