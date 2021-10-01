@@ -1,3 +1,4 @@
+import asyncio
 import codecs
 from contextlib import asynccontextmanager
 
@@ -23,6 +24,21 @@ class ModbusClient(Client):
     def receive(self):
         return
 
+    async def _run(self):
+        print("run")
+
+        async with self.tcm_master_connection("1.0.0.1", 5021) as client:
+            print("getting response")
+
+            r_response = await client.read(
+                1,
+                DataType.HOLDING_REGISTER,
+                40000,
+                len(pl_int_split)
+            )
+
+            print("response", r_response)
+
     @asynccontextmanager
     async def tcm_master_connection(self, ip, port):
         client = None
@@ -37,23 +53,41 @@ class ModbusClient(Client):
                 client.close()
 
     @staticmethod
-    def hex_parts_as_int_to_ip(parts):
-        ip = ""
-        for part in parts:
-            first = int(('0x%04x' % part)[:4], 0)
-            second = int("0x" + ('0x%04x' % part)[4:], 0)
-            ip = ip + f'{first}.{second}.'
+    def str_to_split_int(payload):
+        print("input :", payload)
 
-        return ip[:-1]
+        payload_hex = payload.encode("utf-8").hex()
+        print("hex   :", payload_hex)
+
+        n = 3
+        pl_hex_split = [payload_hex[i:i + n] for i in
+                        range(0, len(payload_hex), n)]
+
+        print("hex sp:", pl_hex_split)
+
+        pl_hex_split[-1] = pl_hex_split[-1].zfill(3)
+
+        pl_int_split = [int("0x" + i, 16) for i in pl_hex_split]
+        print("pl int:", pl_int_split)
+
+        return pl_int_split
 
     @staticmethod
-    def ip_to_hex_parts_as_int(ip):
-        parts = ip.split(".")
-        parts = ['0x%02x' % int(i) for i in parts]
-        containers = []
-        for f, s in zip(parts[0::2], parts[1::2]):
-            containers.append(int(f + s[2:], 16))
-        return containers
+    def split_int_to_str(payload):
+        print("pl int:", payload)
+
+        pl_hex_split = [('0x%03x' % int(i))[2:] for i in payload]
+        print("hex sp:", pl_hex_split)
+
+        payload_hex = "".join(pl_hex_split)
+
+        payload_hex = payload_hex[:-3] + payload_hex[-3:].strip("0")
+
+        print("pl hex:", payload_hex)
+
+        output = bytes.fromhex(payload_hex).decode('utf-8')
+
+        return output
 
     async def connect(self, ip, slave):
         async with self.tcm_master_connection(ip, 5021) as client:
@@ -61,21 +95,7 @@ class ModbusClient(Client):
             print()
 
             payload = "The quick brown fox jumps over the lazy dog"
-            print("input :", payload)
-
-            payload_hex = payload.encode("utf-8").hex()
-            print("hex   :", payload_hex)
-
-            n = 3
-            pl_hex_split = [payload_hex[i:i + n] for i in
-                            range(0, len(payload_hex), n)]
-
-            print("hex sp:", pl_hex_split)
-
-            pl_hex_split[-1] = pl_hex_split[-1].zfill(3)
-
-            pl_int_split = [int("0x" + i, 16) for i in pl_hex_split]
-            print("pl int:", pl_int_split)
+            pl_int_split = self.str_to_split_int(payload)
 
             w_response = await client.write(
                 1,
@@ -97,39 +117,30 @@ class ModbusClient(Client):
                 len(pl_int_split)
             )
 
-            print("pl int:", r_response)
-
-            pl_hex_split = [('0x%03x' % int(i))[2:] for i in r_response]
-            print("hex sp:", pl_hex_split)
-
-            payload_hex = "".join(pl_hex_split)
-
-            payload_hex = payload_hex[:-3] + payload_hex[-3:].strip("0")
-
-            print("pl hex:", payload_hex)
-
-            # tmp = codecs.decode(payload_hex, "hex").decode("utf-8")
-            tmp = bytes.fromhex(payload_hex).decode('utf-8')
-
-            print("output:", tmp)
+            output = self.split_int_to_str(r_response)
+            print("output:", output)
 
 
-@click.command()
-@click.option('--slave-address',
-              help='Trafo-stick data to send.',
-              default='1.0.0.1')
-@click.option('--ip',
-              help='Connection ip.',
-              default='127.0.0.1')
-def main(slave_address, ip):
-    click.echo(f"Slave @ {slave_address}!")
-    click.echo(f"Ip @ {ip}!")
+        # await asyncio.sleep(5)
+
+
+async def async_main():
 
     modbus_client = ModbusClient()
 
-    result = hat.aio.run_asyncio(modbus_client.connect(ip, slave_address))
-    return result
+    modbus_client._group = hat.aio.Group()
+    modbus_client._group.spawn(modbus_client._run)
 
+    # result = hat.aio.run_asyncio(modbus_client.connect(domain_name, slave_address))
+    # return result
+
+@click.command()
+@click.option('--slave-address', default='1.0.0.1')
+@click.option('--domain-name',default='127.0.0.1')
+@click.option("--port", default="5021")
+def main(slave_address, domain_name, port):
+
+    hat.aio.run_asyncio(async_main())
 
 if __name__ == '__main__':
     main()

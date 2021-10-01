@@ -152,6 +152,18 @@ async def async_main():
 
     data_manager = await init_data_manager()
 
+    # set iec104
+
+    t = await data_manager.get_init_data()
+    print("init data")
+    [print(i) for i in t.items()]
+
+    t = await data_manager.get_curr_data()
+    print("curr data")
+    [print(i) for i in t.items()]
+
+    # set modbus
+
     t = await data_manager.get_init_data()
     print("init data")
     [print(i) for i in t.items()]
