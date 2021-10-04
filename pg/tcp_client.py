@@ -51,7 +51,7 @@ class Message:
 
     def _write(self):
         if self._send_buffer:
-            print("sending", repr(self._send_buffer), "to", self.addr)
+            # print("sending", repr(self._send_buffer), "to", self.addr)
             try:
                 # Should be ready to write
                 sent = self.sock.send(self._send_buffer)
@@ -85,13 +85,13 @@ class Message:
 
     def _process_response_binary_content(self):
         content = self.response
-        print(f"got response: {repr(content)}")
+        # print(f"got response: {repr(content)}")
 
     def process_events(self, mask):
         if mask & selectors.EVENT_READ:
             self.read()
 
-            print("got", self.response)
+            # print("got", self.response)
         if mask & selectors.EVENT_WRITE:
             self.write()
 
@@ -191,10 +191,7 @@ class Message:
 
         # Binary or unknown content-type
         self.response = data
-        print(
-            f'received  response from',
-            self.addr,
-        )
+        # print( f'received  response from',self.addr )
         self._process_response_binary_content()
         # Close when response has been processed
         self.close()
@@ -241,30 +238,30 @@ class TCPClient(Client):
         try:
             while True:
                 events = sel.select(timeout=1)
-                print("get map", sel.get_map())
-                print("events", events)
+                # print("get map", sel.get_map())
+                # print("events", events)
                 for key, mask in events:
-                    print("key", key)
-                    print("mask", mask)
+                    # print("key", key)
+                    # print("mask", mask)
 
                     message = key.data
-                    print("message", message)
+                    # print("message", message)
                     try:
                         result = message.process_events(mask)
-                        print("result", result)
+                        # print("result", result)
 
                         if result:
                             self.rec_list.append(result)
                     except:
-                        print(
-                            "main: error: exception for",
-                            f"{message.addr}:\n{traceback.format_exc()}",
-                        )
+                        # print(
+                        #     "main: error: exception for",
+                        #     f"{message.addr}:\n{traceback.format_exc()}",
+                        # )
                         message.close()
-                    print()
+                    # print()
 
                 if not sel.get_map():
-                    print("not get map")
+                    # print("not get map")
                     break
 
         except KeyboardInterrupt:
@@ -278,7 +275,7 @@ def main():
     tcp_client.send("tmp 1234567890")
     tcp_client.send("aaaaa bbbb ccc dd e")
 
-    print(tcp_client.receive())
+    # print(tcp_client.receive())
 
 
 if __name__ == '__main__':

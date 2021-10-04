@@ -1,3 +1,4 @@
+
 class Client:
 
     def __init__(self, domain_name="127.0.0.1", port=5000):

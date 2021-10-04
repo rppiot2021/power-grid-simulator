@@ -1,7 +1,6 @@
 from websocket import create_connection
 from client import Client
 
-
 class WSClient(Client):
 
     def __init__(self, domain_name="127.0.0.1", port=8765):
