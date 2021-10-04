@@ -12,7 +12,7 @@ from hat.drivers import iec104
 import asyncio
 from abc import ABC, abstractmethod
 from pg.ws_client import WSClient
-from pg.tcp_client import TCPClient
+from pg.tcp_client2 import TCPClient
 
 
 ADDRESSES = []
@@ -178,9 +178,6 @@ class TCPProtocol(Strategy):
     def __init__(self):
         self.client = TCPClient("127.0.0.1", 4567)
 
-    async def connect(self):
-        pass
-
     async def get_init_data(self):
         return self.get_curr_data()
 
@@ -190,18 +187,24 @@ class TCPProtocol(Strategy):
     async def send_data(self, value, asdu=0, io=0):
         self.client.send(value)
 
+    async def connect(self):
+        self.client.start_connection(dont_close=True)
+
+    def close(self):
+        self.client.close_connection()
+
 async def async_main():
 
     protocol = TCPProtocol()
-
-    # protocol.client.start_connection(dont_close=True)
+    protocol.client.start_connection()
 
     await protocol.send_data("tmp123456789")
+    print("FIRST MESSAGE SENT __ DONE")
     await protocol.send_data("aa222")
-    # await protocol.send_data("aaaaa bbbb ccc dd e")
-    # set iec104
 
     print(f">>{await protocol.get_curr_data()}<<")
+
+    protocol.close()
 
     #
     # protocol = IEC104Protocol()

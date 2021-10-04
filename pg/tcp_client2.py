@@ -17,9 +17,6 @@ class Message:
         self.request = request
         self._recv_buffer = b""
         self._send_buffer = b""
-        self._request_queued = False
-        self._jsonheader_len = None
-        self.jsonheader = None
         self.response = None
 
     def __str__(self):
@@ -36,10 +33,6 @@ class Message:
         else:
             raise ValueError(f"Invalid events mask mode {repr(mode)}.")
         self.selector.modify(self.sock, events, data=self)
-
-
-
-
 
     def __recv_raw_msg(self):
         """In charge of receiving messages from the connection.
@@ -103,13 +96,15 @@ class Message:
         return n + content_bytes
 
     def read(self):
+        print("read::started")
         # self._read()
         msg = self.__recv_raw_msg()
-
+        print(msg)
         self.response = self._from_bytes(msg)
+        print("read::done")
 
     def write(self):
-
+        print("write::started")
         req = {"client_sent": str(self.request)}
 
         self._send_buffer = self._to_bytes(req)
@@ -117,7 +112,7 @@ class Message:
         print("TO_SEND", self._send_buffer)
 
         self.sock.sendall(self._send_buffer)
-        self._set_selector_events_mask("r")
+        print("write::done")
 
     def process_events(self, mask):
         if mask & selectors.EVENT_READ:
@@ -128,6 +123,11 @@ class Message:
         if mask & selectors.EVENT_WRITE:
             print("process_ev::WRITE")
             self.write()
+
+            try:
+                self._set_selector_events_mask("r")
+            except:
+                pass
 
         return self.response
 
@@ -153,8 +153,6 @@ class Message:
             self.sock = None
 
 
-
-
 class TCPClient(Client):
 
     def __init__(self, domain_name, host):
@@ -164,7 +162,9 @@ class TCPClient(Client):
 
     def send(self, payload):
 
-        self.driver(payload)
+        return self.driver(payload)
+
+
 
     def receive(self):
 
@@ -174,6 +174,8 @@ class TCPClient(Client):
     def create_request(msg_payload):
         return msg_payload
 
+    def close_connection(self):
+        pass
 
 
     def connect_socket(self, address):
@@ -183,59 +185,64 @@ class TCPClient(Client):
         sock.connect_ex(address)
         return sock
 
-    def start_connection(self, request=None, sel=None, dont_close=False):
-        address = (self.domain_name, self.port)
-        print("starting connection to", address)
+    def start_connection(self):
+        self.sel = selectors.DefaultSelector()
+        self.address = (self.domain_name, self.port)
+        print("starting connection to", self.address)
 
-        self.sock = self.connect_socket(address)
+        self.sock = self.connect_socket(self.address)
         self.events = selectors.EVENT_READ | selectors.EVENT_WRITE
 
+
     def register_message(self, sel, request):
-        address = (self.domain_name, self.port)
-        message = Message(sel, self.sock, address, request)
+        message = Message(sel, self.sock, self.address, request)
         sel.register(self.sock, self.events, data=message)
 
     def driver(self, payload):
-        sel = selectors.DefaultSelector()
-        request = self.create_request(msg_payload=payload)
-        self.start_connection(request, sel)
+        print("driver start")
+        if not self.sel:
+            print("connection not started")
+            return
 
-        self.register_message(sel, request)
+        request = self.create_request(msg_payload=payload)
+        self.register_message(self.sel, request)
 
         try:
+
             while True:
-                events = sel.select(timeout=1)
+                events = self.sel .select(timeout=1)
                 for key, mask in events:
-
+                    p = yield payload
+                    print(p,payload)
+                    request = self.create_request(msg_payload=p)
                     message = key.data
-                    print(mask)
-
                     try:
                         result = message.process_events(mask)
 
                         if result:
                             self.rec_list.append(result)
+
                     except:
                         message.close()
 
-                    time.sleep(0.5)
 
-                if not sel.get_map():
+                if not self.sel .get_map():
                     break
+
 
         except KeyboardInterrupt:
             print("caught keyboard interrupt, exiting")
         finally:
-            sel.close()
+            self.sel .close()
 
 
-def main():
-    tcp_client = TCPClient("127.0.0.1", 4567)
-    tcp_client.send("tmp 1234567890")
-    tcp_client.send("aaaaa bbbb ccc dd e")
-
-    # print(tcp_client.receive())
-
-
-if __name__ == '__main__':
-    main()
+# def main():
+#     tcp_client = TCPClient("127.0.0.1", 4567)
+#     tcp_client.send("tmp 1234567890")
+#     tcp_client.send("aaaaa bbbb ccc dd e")
+#
+#     # print(tcp_client.receive())
+#
+#
+# if __name__ == '__main__':
+#     main()

@@ -62,43 +62,12 @@ class Message:
 
     def _read(self):
         self._recv_buffer = self._recv_raw_msg()
-        # try:
-        #     # Should be ready to read
-        #     data = self.sock.recv(4096)
-        # except BlockingIOError:
-        #     # Resource temporarily unavailable (errno EWOULDBLOCK)
-        #     pass
-        # else:
-        #     if data:
-        #         self._recv_buffer += data
-        #     else:
-        #         raise RuntimeError("Peer closed.")
 
     def _write(self):
         if self._send_buffer:
-            print("sending", repr(self._send_buffer), "to", self.addr)
-            try:
-                # Should be ready to write
-                sent = self.sock.send(self._send_buffer)
-            except BlockingIOError:
-                # Resource temporarily unavailable (errno EWOULDBLOCK)
-                pass
-            else:
-                self._send_buffer = self._send_buffer[sent:]
-                # Close when the buffer is drained. The response has been sent.
-                if sent and not self._send_buffer:
-                    self.close()
-
-    def _json_encode(self, obj, encoding):
-        return json.dumps(obj, ensure_ascii=False).encode(encoding)
-
-    def _json_decode(self, json_bytes, encoding):
-        tiow = io.TextIOWrapper(
-            io.BytesIO(json_bytes), encoding=encoding, newline=""
-        )
-        obj = json.load(tiow)
-        tiow.close()
-        return obj
+            sent = self.sock.sendall(self._send_buffer)
+            print("SENT", self._send_buffer)
+            self._send_buffer = None
 
     def _from_bytes(self, data):
         """Receives raw data from TCP connection,and
@@ -110,9 +79,10 @@ class Message:
         Returns:
             dict: dictionary representation of the input
         """
+        if data is None:
+            return
 
         tiow = io.TextIOWrapper(io.BytesIO(data), encoding="utf-8", newline="")
-
         self.response = json.load(tiow)
         tiow.close()
 
@@ -134,15 +104,17 @@ class Message:
         return n + content_bytes
 
     def _create_response(self):
-        response = {
-            "content": "First 10 bytes of request: " +
-                       str(self._recv_buffer['client_sent'])[:10]
-        }
-        return response
+        if self._recv_buffer is not None:
+            response = {
+                "content": "First 10 bytes of request: " +
+                           str(self._recv_buffer['client_sent'])[:10]
+            }
+            return response
+        return {"content": "No bytes sent"}
 
     def process_events(self, mask):
         if mask & selectors.EVENT_READ:
-            print("Event READ")
+
             self.read()
             try:
                 self._set_selector_events_mask("w")
@@ -150,12 +122,20 @@ class Message:
                 pass
 
         if mask & selectors.EVENT_WRITE:
-            print("Event WRITE")
+
             self.write()
             try:
                 self._set_selector_events_mask("r")
             except:
                 pass
+
+    def process_message(self,msg):
+        print("RECEIVED MESSAGE", msg)
+
+        if msg is not None:
+            if msg['client_sent'] == "CLOSE":
+                self.close()
+
 
 
     def read(self):
@@ -164,16 +144,18 @@ class Message:
 
         self._recv_buffer = msg
 
-        print("RECEIVED MESSAGE", msg)
+        self.process_message(msg)
+
+
 
     def write(self):
-
         response = self._create_response()
 
         self._send_buffer = self._to_bytes(response)
         print("created_message", self._send_buffer)
 
         self._write()
+
 
     def close(self):
         print("closing connection to", self.addr, "\n")
@@ -199,13 +181,11 @@ class Message:
             self.sock = None
 
 
-
-
-
 class TCPServer(Server):
 
     def __init__(self, domain_name, port):
         super(TCPServer, self).__init__(domain_name, port)
+        self.conn =None
 
         self.sel = selectors.DefaultSelector()
         address = (self.host_name, self.port)
@@ -220,10 +200,13 @@ class TCPServer(Server):
 
         try:
             while True:
-                events = self.sel.select(timeout=None)
+
+                events = self.sel.select(timeout=1)
+
                 for key, mask in events:
 
                     if key.data is None:
+
                         self.accept_wrapper(key.fileobj)
                     else:
 
@@ -237,7 +220,8 @@ class TCPServer(Server):
                             )
                             message.close()
 
-                    time.sleep(0.5)
+
+
 
         except KeyboardInterrupt:
             print("caught keyboard interrupt, exiting")
@@ -245,11 +229,12 @@ class TCPServer(Server):
             self.sel.close()
 
     def accept_wrapper(self, sock):
-        conn, addr = sock.accept()  # Should be ready to read
-        print("accepted connection from", addr)
-        conn.setblocking(False)
-        message = Message(self.sel, conn, addr)
-        self.sel.register(conn, selectors.EVENT_READ, data=message)
+        if not self.conn:
+            self.conn, addr = sock.accept()  # Should be ready to read
+            print("accepted connection from", addr)
+            self.conn.setblocking(False)
+            message = Message(self.sel, self.conn, addr)
+            self.sel.register(self.conn, selectors.EVENT_READ, data=message)
 
 
 def main():
