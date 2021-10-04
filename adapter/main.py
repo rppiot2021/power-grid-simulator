@@ -196,10 +196,12 @@ async def async_main():
 
     await protocol.send_data("tmp123456789")
     # await protocol.send_data("aaaaa bbbb ccc dd e")
+    # set iec104
+
 
     print(f"meseđ>>{await protocol.get_curr_data()}<<")
 
-
+    #
     # protocol = IEC104Protocol()
     # await protocol.connect()
     #
