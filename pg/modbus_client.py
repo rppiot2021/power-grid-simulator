@@ -12,52 +12,58 @@ import string
 
 class ModbusClient(Client):
 
-    # def send(self, payload):
-    #     return
-
     def receive(self):
-        return self._recv_list
+        return self.register_data
 
     async def _run(self):
-        print("run")
 
         client = await mod.create_tcp_master(
                 mod.ModbusType.TCP,
                 hat.drivers.tcp.Address(self.domain_name, self.port))
 
-        print("client instantiated")
+        while True:
+            is_sth_changed = False
 
-        old_val = None
+            for j in range(2):
 
-        # while True:
-        #
-        #     r_header = await client.read(
-        #         1,
-        #         DataType.HOLDING_REGISTER,
-        #         40000,
-        #         self.header_len
-        #     )
-        #
-        #     expected_len = r_header[0]
-        #
-        #     r_body = await client.read(
-        #         1,
-        #         DataType.HOLDING_REGISTER,
-        #         40000 + self.header_len,
-        #         expected_len
-        #     )
-        #
-        #     print(r_header, r_body)
-        #
-        #     msg = self.split_int_to_str(r_body)
-        #
-        #     print("reading", msg)
-        #
-        #     if old_val == msg:
-        #         print("already read this, not updating")
-        #
-        #     else:
-        #         self._recv_list.append(msg)
+                for i in range(9):
+                    address = i * 1000
+
+                    r_header = await client.read(
+                        1,
+                        DataType.HOLDING_REGISTER,
+                        address,
+                        self.header_len
+                    )
+
+                    expected_len = r_header[0]
+
+                    r_body = await client.read(
+                        1,
+                        DataType.HOLDING_REGISTER,
+                        address + self.header_len,
+                        expected_len
+                    )
+
+                    print("read; address:", address, r_header, r_body)
+
+                    msg = self.split_int_to_str(r_body)
+
+                    print("plaintext:", msg)
+
+                    if address not in self.register_data or \
+                            not self.register_data[address] == msg:
+
+                        is_sth_changed = True
+                        self.control_dict[address].append(msg)
+                        self.register_data[address] = msg
+
+                    else:
+                        print("already read this, not updating")
+
+            if not is_sth_changed:
+                print("nothing changed in two iters, closing")
+                break
 
         client.close()
 
@@ -116,7 +122,11 @@ class ModbusClient(Client):
 
         # print("pl hex:", payload_hex)
 
-        output = bytes.fromhex(payload_hex).decode('utf-8')
+        try:
+            output = bytes.fromhex(payload_hex).decode('utf-8')
+        except:
+            print("err on", payload_hex)
+            raise ValueError("err")
 
         return output
 
@@ -128,7 +138,7 @@ class ModbusClient(Client):
             address = payload[0]
             payload = payload[1]
 
-            print("\twriting", payload)
+            print("\twriting; adr:", address, ", payload:", payload)
 
             pl_int_split = self.str_to_split_int(payload)
 
@@ -152,7 +162,7 @@ class ModbusClient(Client):
                 msg
             )
 
-            print("\t", msg)
+            # print("\t", msg)
 
             if w_response:
                 print("Write error", w_response.name)
@@ -171,7 +181,7 @@ async def async_main(domain_name, port):
 
     modbus_client = ModbusClient()
 
-    modbus_client._recv_list = []
+    modbus_client.register_data = {}
     modbus_client.domain_name = domain_name
     modbus_client.max_msg_len = 100
     # how many things are in it
@@ -179,8 +189,12 @@ async def async_main(domain_name, port):
     modbus_client.fragment_len = 3
     modbus_client.port = int(port)
 
+    from collections import defaultdict
+    modbus_client.control_dict = defaultdict(list)
+
     modbus_client._group = hat.aio.Group()
     modbus_client._group.spawn(modbus_client._run)
+
 
     dummy_data = {
         0: "tmp val 1",
@@ -191,21 +205,35 @@ async def async_main(domain_name, port):
         5000: "pwzwggoyuugtftmoksogwhkkduzcwccludztazxhyfautrfgrjjokfv",
         6000: "fqvnbusfjhzgkhpqankvuehugpyeveutimdpqqsvwzhvbcrtlmgolxudixeehlzqsmeunuxfwhgnxpbhkkvrocbbnjvhvmycxcykwalgptecjemjdrrjcyqzlqxvxjaqxbjlvywziujduzagoacuznnxelzwpzzwcrsxgkmomkevinciahyazjvxatzre",
         7000: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        # "fqvnbusfjhzgkhpqankvuehugpyeveutimdpqqsvwzhvbcrtlmgolxudixeehlzqsmeunuxfwhgnxpbhkkvrocbbnjvhvmycxcykwalgptecjemjdrrjcyqzlqxvxjaqxbjlvywziujduzagoacuznnxelzwpzzwcrsxgkmomkevinciahyazjvxatzres",
-
     }
 
     for adr, msg in dummy_data.items():
         await modbus_client.send((adr, msg))
 
-    for i in range(9):
 
-        await modbus_client.send(get_random_string(random.randint(0, 150)))
+    dummy_data = {
+        0: "tmp val 1",
+        1000: "kogkdbloynafmrzmhnpfjsktklnqhqxajroplzknitnafxoscefdarfnrellivzhgeqjmpspklnpslkdneplxaeshfqslzovgotvpghuqiyzwaqjhekcdavklhegxog",
+        2000: "kfkvetettgydnuzpkorhxeulrpruzocwpkilhcbdlsxnyhztlwgbkvvsvhtwget",
+        3000: "lw",
+        4000: "beiqeshxhgkxwbfapcaeucbpevdsddysaejocsegpawunsedyauicpmukgxqzrvqiolbhjxfzwvkkv",
+        5000: "zsczvqqkgewnjgexwepqeyvdfdiiqaoptepqiwhityvkysmynsgbqppdxnffdaadcriqaozqogwjtlxlyngxuhly",
+        6000: "pecemykhwrekjmfnjpfbsaukyagofjepbtzopldarypnojgjfgzxilllbguotfodhycembqixsejksybugnrqyxfulxhxmowcjzbtodywrvzsveobgrkzwx",
+        7000: "pfgwizsetdqubcierrjlwgajgvtkrcocjretuaouel",
+    }
 
-    print()
-    print("receive queue")
+    for adr, msg in dummy_data.items():
+        await modbus_client.send((adr, msg))
 
-    [print(i) for i in modbus_client.receive()]
+    for j in range(4):
+        for i in range(9):
+            await modbus_client.send((i * 1000, get_random_string(random.randint(0, 150))))
+
+    print("\nreceive queue")
+    [print(i) for i in modbus_client.control_dict.items()]
+
+    print("\ntrue data")
+    [print(i) for i in modbus_client.register_data.items()]
 
     await modbus_client._group.wait_closed()
 
