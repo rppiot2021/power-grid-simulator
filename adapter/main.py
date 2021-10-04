@@ -194,12 +194,14 @@ async def async_main():
 
     protocol = TCPProtocol()
 
+    # protocol.client.start_connection(dont_close=True)
+
     await protocol.send_data("tmp123456789")
+    await protocol.send_data("aa222")
     # await protocol.send_data("aaaaa bbbb ccc dd e")
     # set iec104
 
-
-    print(f"meseđ>>{await protocol.get_curr_data()}<<")
+    print(f">>{await protocol.get_curr_data()}<<")
 
     #
     # protocol = IEC104Protocol()
