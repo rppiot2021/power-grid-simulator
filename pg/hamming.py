@@ -30,6 +30,8 @@ def reverse_print(l):
 
 
 payload = [1, 1, 0, 0, 1]
+# todo undo reversing
+payload = [1, 0, 0, 1, 1]
 
 # calculate where to insert chcecksums
 to_inser = []
@@ -37,18 +39,76 @@ for i in range(10):
 
     if i == control_counter:
         control_counter *= 2
-        # print(i)
         to_inser.append(i)
 
-# print(to_inser)
 
 # insert into starting list
 for i in to_inser:
 
-    payload.insert(i -1, "_")
-
+    payload.insert(i - 1, "_")
 
 print(payload[::-1])
+
+working_matrix = []
+
+# print binary repr
+for i, d in enumerate(payload):
+
+    #
+    # create binary representation list
+    context_b = list(bin(i+1)[2:].zfill(len(to_inser)))
+
+    print(i +1,d, context_b)
+    if d in [ 0, "_"]:
+        continue
+    working_matrix.append(context_b)
+
+
+print("___")
+
+checksum_matrix = []
+
+k = 0
+for i, d in enumerate(payload):
+
+    # todo reverse again
+    if d == "_":
+        print("calcuting", [t for t in working_matrix ])
+        print("calcuting", [t[k] for t in working_matrix])
+
+        s = sum([int(t[k]) for t in working_matrix])
+        print(s)
+
+        if s % 2 == 0:
+            print("no add")
+            checksum_matrix.append(0)
+        else:
+            print("add")
+            checksum_matrix.append(1)
+
+
+        k += 1
+
+print("checksum matrix", checksum_matrix)
+
+
+# insert into starting matrix
+
+print(payload)
+print(payload.index("_"))
+#
+
+t = payload[::-1]
+print("before",t )
+
+for i in checksum_matrix:
+    t[t.index("_")] = i
+
+
+print(t)
+# print()
+# print("---")
+# [print(i) for i in working_matrix]
 
 
 
