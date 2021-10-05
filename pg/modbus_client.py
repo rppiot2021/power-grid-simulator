@@ -1,3 +1,5 @@
+import codecs
+from builtins import breakpoint
 from contextlib import asynccontextmanager
 import click
 import hat
@@ -111,7 +113,7 @@ class ModbusClient(Client):
     def split_int_to_str(self, payload):
         # print("pl int:", payload)
 
-        # fixme what is 2
+        # 2: to remove prefix "0x"
         pl_hex_split = [('0x%03x' % int(i))[2:] for i in payload]
         # print("hex sp:", pl_hex_split)
 
@@ -124,8 +126,12 @@ class ModbusClient(Client):
 
         try:
             output = bytes.fromhex(payload_hex).decode('utf-8')
-        except:
-            print("err on", payload_hex)
+
+        except ValueError:
+            # import traceback
+            # print(traceback.format_exc())
+            print("err on", payload)
+            print("err", payload_hex)
             raise ValueError("err")
 
         return output
@@ -137,8 +143,6 @@ class ModbusClient(Client):
 
             address = payload[0]
             payload = payload[1]
-
-            print("\twriting; adr:", address, ", payload:", payload)
 
             pl_int_split = self.str_to_split_int(payload)
 
@@ -154,10 +158,11 @@ class ModbusClient(Client):
 
             msg = header + pl_int_split
 
+            print("\twriting; adr:", address, ", msg", pl_int_split)
+
             w_response = await client.write(
                 1,
                 DataType.HOLDING_REGISTER,
-                # 40000,
                 address,
                 msg
             )
@@ -172,7 +177,7 @@ class ModbusClient(Client):
 def get_random_string(length):
     # choose from all lowercase letter
     letters = string.ascii_lowercase
-    result_str = ''.join(random.choice(letters) for i in range(length))
+    result_str = ''.join(random.choice(letters) for _ in range(length))
 
     return result_str
 
@@ -195,7 +200,6 @@ async def async_main(domain_name, port):
     modbus_client._group = hat.aio.Group()
     modbus_client._group.spawn(modbus_client._run)
 
-
     dummy_data = {
         0: "tmp val 1",
         1000: "tmp val 2",
@@ -209,7 +213,6 @@ async def async_main(domain_name, port):
 
     for adr, msg in dummy_data.items():
         await modbus_client.send((adr, msg))
-
 
     dummy_data = {
         0: "tmp val 1",
@@ -227,7 +230,10 @@ async def async_main(domain_name, port):
 
     for j in range(4):
         for i in range(9):
-            await modbus_client.send((i * 1000, get_random_string(random.randint(0, 150))))
+            await modbus_client.send((
+                i * 1000,
+                get_random_string(random.randint(0, 150))
+            ))
 
     print("\nreceive queue")
     [print(i) for i in modbus_client.control_dict.items()]
@@ -239,7 +245,7 @@ async def async_main(domain_name, port):
 
 
 @click.command()
-@click.option('--domain-name',default='127.0.0.1')
+@click.option('--domain-name', default='127.0.0.1')
 @click.option("--port", default="5021")
 def main(domain_name, port):
 
@@ -247,4 +253,19 @@ def main(domain_name, port):
 
 
 if __name__ == '__main__':
-    main()
+    a = "6e70727275686f73786a73627367627a6b7868656a6a646c6c6164666e697370686a796b6a677a7477797664716e6c70619707270736c6d766261666f786d65647768777367626b67706a6a787062687268697977676c72747a767a70786171626979"
+
+    t =  ''.join([chr(int(''.join(c), 16)) for c in zip(a[0::2], a[1::2])])
+    print(t)
+
+    # print(bytes.fromhex(a).decode('utf-8'))
+
+    # import binascii
+    # c =     binascii.unhexlify(a)
+    # print(c)
+
+    # print(bytearray.fromhex(a).decode())
+    # print(codecs.decode(a, "hex"))
+    # print(a.decode("hex"))
+
+    # main()
