@@ -1,37 +1,30 @@
-payload = "11001"
+from collections import defaultdict
 
 control_counter = 1
-
-inserted = []
-
-"""
-43210
-11001
-11 11
- 11 1
- 111 
-1
-
-
-987654321
-1_100_1__
-1 1 1 1 1
-  11  11
-  1111
-11
-
-
-
-"""
-
-
-def reverse_print(l):
-    print(l.reverse())
-
 
 payload = [1, 1, 0, 0, 1]
 # todo undo reversing
 payload = [1, 0, 0, 1, 1]
+
+k = 0
+ins = []
+
+while True:
+    if 2**k >= len(payload) + k + 1:
+        print("found k", k)
+        break
+
+    ins.append(2**k)
+    k+=1
+
+
+print("ins", ins)
+
+# l = 1
+# for i in range(k):
+#     print(l)
+#     l *= 2
+
 
 # calculate where to insert chcecksums
 to_inser = []
@@ -41,7 +34,7 @@ for i in range(10):
         control_counter *= 2
         to_inser.append(i)
 
-
+print(to_inser)
 # insert into starting list
 for i in to_inser:
 
@@ -51,107 +44,38 @@ print(payload[::-1])
 
 working_matrix = []
 
+len_to_ins = len(to_inser)
+
+working_dict = defaultdict(int)
+
 # print binary repr
 for i, d in enumerate(payload):
 
-    #
     # create binary representation list
-    context_b = list(bin(i+1)[2:].zfill(len(to_inser)))
 
-    print(i +1,d, context_b)
+    c_b = list(bin(i + 1)[2:])
+    print(i +1,d, "".join(c_b).zfill(len_to_ins))
+
     if d in [ 0, "_"]:
         continue
-    working_matrix.append(context_b)
+
+    for en, v in enumerate(c_b[::-1]):
+       working_dict[en] += int(v)
 
 
 print("___")
 
+[print(i) for i in working_dict.items()]
+
 checksum_matrix = []
 
-k = 0
-for i, d in enumerate(payload):
+for i, v in working_dict.items():
+    checksum_matrix.append(0 if v % 2 == 0 else 1)
 
-    # todo reverse again
-    if d == "_":
-        print("calcuting", [t for t in working_matrix ])
-        print("calcuting", [t[k] for t in working_matrix])
+print(checksum_matrix)
 
-        s = sum([int(t[k]) for t in working_matrix])
-        print(s)
-
-        if s % 2 == 0:
-            print("no add")
-            checksum_matrix.append(0)
-        else:
-            print("add")
-            checksum_matrix.append(1)
-
-
-        k += 1
+checksum_matrix = checksum_matrix[::-1]
 
 print("checksum matrix", checksum_matrix)
 
-
-# insert into starting matrix
-
-print(payload)
-print(payload.index("_"))
-#
-
-t = payload[::-1]
-print("before",t )
-
-for i in checksum_matrix:
-    t[t.index("_")] = i
-
-
-print(t)
-# print()
-# print("---")
-# [print(i) for i in working_matrix]
-
-
-
-
-
-#
-# payload_i = 0
-# inserted.append("_")
-# while True:
-#
-#     try:
-#         data = t[payload_i]
-#         # data = payload.split()[payload_i]
-#     except IndexError:
-#         break
-#
-#     print(payload_i)
-#
-#     if (payload_i + 1) % 2 == 0:
-#         inserted.append("_")
-#         print("tu", payload_i + 1)
-#
-#     else:
-#         inserted.append(data)
-#
-#     payload_i += 1
-#
-# print(inserted)
-
-#
-#
-#
-# for i, d in enumerate(payload):
-#     print(i, d)
-#     # print(bin(i+1)[2:])
-#
-#     print("control counter", control_counter)
-#
-#     if control_counter == i:
-#         inserted.append("-")
-#         control_counter *= 2
-#
-#     # else:
-#     inserted.append(d)
-#
-# print(inserted)
+assert checksum_matrix == [1, 1, 0, 1]
