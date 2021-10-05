@@ -30,9 +30,7 @@ for i, d in enumerate(payload[::-1]):
             bool(int(i)) for i in c_b
         ])
 
-        for en, v in enumerate[
-            bool(int(i)) for i in c_b
-        ]:
+        for en, v in enumerate[bool(int(i)) for i in c_b]:
             checksum_dict[en] = not v
 
         # for en, v in enumerate(c_b):

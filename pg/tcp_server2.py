@@ -7,8 +7,33 @@ import selectors
 import traceback
 from server import Server
 import time
+from enum import Enum
 
-class Message:
+
+class Buffer:
+    class BType(Enum):
+        SEND = 1
+        RECV = 2
+
+    def __init__(self, ):
+        self._raw_recv = b""
+        self._raw_send = b""
+        self._recv = {}
+        self._send = {}
+
+    def _from_bytes(self, data):
+
+        if data is None:
+            return
+
+        tiow = io.TextIOWrapper(io.BytesIO(data), encoding="utf-8", newline="")
+        self.response = json.load(tiow)
+        tiow.close()
+
+        return self.response
+
+
+class OldMessage:
     def __init__(self, selector, sock, addr):
         self.selector = selector
         self.sock = sock
@@ -233,7 +258,7 @@ class TCPServer(Server):
             self.conn, addr = sock.accept()  # Should be ready to read
             print("accepted connection from", addr)
             self.conn.setblocking(False)
-            message = Message(self.sel, self.conn, addr)
+            message = OldMessage(self.sel, self.conn, addr)
             self.sel.register(self.conn, selectors.EVENT_READ, data=message)
 
 

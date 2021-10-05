@@ -165,7 +165,6 @@ class TCPClient(Client):
         return self.driver(payload)
 
 
-
     def receive(self):
 
         return self.rec_list
