@@ -199,12 +199,11 @@ async def async_main():
     protocol.client.start_connection()
 
     await protocol.send_data("tmp123456789")
-    print("FIRST MESSAGE SENT __ DONE")
-    await protocol.send_data("aa222")
+    print("FIRST MESSAGE SENT")
 
     print(f">>{await protocol.get_curr_data()}<<")
 
-    protocol.close()
+    # protocol.close()
 
     #
     # protocol = IEC104Protocol()
