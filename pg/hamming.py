@@ -6,76 +6,45 @@ payload = [1, 1, 0, 0, 1]
 # todo undo reversing
 payload = [1, 0, 0, 1, 1]
 
+# number of control bits
 k = 0
-ins = []
 
-while True:
-    if 2**k >= len(payload) + k + 1:
-        print("found k", k)
-        break
+while 2**k < len(payload) + k + 1:
 
-    ins.append(2**k)
-    k+=1
+    # inserting control po
+    payload.insert(2**k - 1, "_")
+    k += 1
 
+print(payload[::-1], "\n")
 
-print("ins", ins)
+checksum_dict = defaultdict(int)
+result = []
+index = 0
 
-# l = 1
-# for i in range(k):
-#     print(l)
-#     l *= 2
+for i, d in enumerate(payload[::-1]):
 
+    if d == 1:
+        c_b = list(bin(len(payload) - i)[2:].zfill(4))
+        print(c_b)
+        print([
+            bool(int(i)) for i in c_b
+        ])
 
-# calculate where to insert chcecksums
-to_inser = []
-for i in range(10):
+        for en, v in enumerate[
+            bool(int(i)) for i in c_b
+        ]:
+            checksum_dict[en] = not v
 
-    if i == control_counter:
-        control_counter *= 2
-        to_inser.append(i)
+        # for en, v in enumerate(c_b):
+        #     checksum_dict[en] += int(v)
 
-print(to_inser)
-# insert into starting list
-for i in to_inser:
+print(checksum_dict)
 
-    payload.insert(i - 1, "_")
+t = [0 if v%2==0 else 1 for k,v in checksum_dict.items()]
+# print(t)
 
-print(payload[::-1])
+checksum_matrix = t
 
-working_matrix = []
-
-len_to_ins = len(to_inser)
-
-working_dict = defaultdict(int)
-
-# print binary repr
-for i, d in enumerate(payload):
-
-    # create binary representation list
-
-    c_b = list(bin(i + 1)[2:])
-    print(i +1,d, "".join(c_b).zfill(len_to_ins))
-
-    if d in [ 0, "_"]:
-        continue
-
-    for en, v in enumerate(c_b[::-1]):
-       working_dict[en] += int(v)
-
-
-print("___")
-
-[print(i) for i in working_dict.items()]
-
-checksum_matrix = []
-
-for i, v in working_dict.items():
-    checksum_matrix.append(0 if v % 2 == 0 else 1)
-
-print(checksum_matrix)
-
-checksum_matrix = checksum_matrix[::-1]
-
-print("checksum matrix", checksum_matrix)
+print("\nchecksum matrix", checksum_matrix)
 
 assert checksum_matrix == [1, 1, 0, 1]
