@@ -46,7 +46,6 @@ class ConnectionIEC104(Strategy):
             command_cb=command_cb
         )
 
-
     def wrap_data(self, simulation_data, asdu, io):
         return iec104.Data(asdu_address=asdu,
                            io_address=io,
@@ -68,13 +67,13 @@ class ConnectionIEC104(Strategy):
 
 class ConnectionOther(Strategy):
     async def connect_cb(self, connection_cb,interrogate_cb,command_cb, address):
-        pass
+        raise NotImplementedError
 
     def wrap_data(self, simulation_data, asdu, io):
-        pass
+        raise NotImplementedError
 
     def wrap_value(self, value, type_104):
-        pass
+        raise NotImplementedError
 
 
 class PandaPowerExample:
@@ -158,6 +157,7 @@ class Simulator(aio.Resource):
 
     async def _command_cb(self, _, commands):
         for command in commands:
+            # todo iec
             if command.action != iec104.Action.EXECUTE:
                 mlog.warning('received action %s, only EXECUTE is supported',
                              command.action)
