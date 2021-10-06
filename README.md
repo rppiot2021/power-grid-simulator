@@ -9,19 +9,8 @@ setup
 
     pip install -r requirements.pip.txt
 
-    try:
 
-        sudo apt-get install $(grep -vE "^\s*#" requirements.ubuntu.txt  | tr "\n" " ")
-
-    except:
-
-        sudo apt-get install binutils-mingw-w64-x86-64 clang doxygen gcc gcc-mingw-w64-x86-64 git graphviz libffi-dev libisoburn-dev libjansson-dev libuv1-dev libyaml-dev nodejs npm openssl pandoc plantuml python3 python3-pip samba socat sqlite3 unixodbc yarn
-
-run all tests
-todo
-
-
-starting project
+starting simulator
 ------
 
 
@@ -41,9 +30,27 @@ Affiliate links for connecting to simulator using Hat-core iec wrapper implement
 [IEC 60870-5-104 Hat-core implementation](https://core.hat-open.com/docs/libraries/drivers/iec104.html)  
 [IEC 60870-5-104 Hat-core documentation](https://core.hat-open.com/docs/pyhat/hat/drivers/iec104/index.html)
 
+This repository contains simulator and adapter.
 
-*IEC 104* je industrijski komunikacijski protokol koji se koristi u energetici
-za komunikaciju s terenskim uređajima.  Jedan je od raznim protokola koji se
-koriste za tu svrhu.   Vaš zadatak je da iskoristite implementaciju IEC 104
-drivera iz  Hat-core repozitorija da bi ostvarili komunikaciju sa simulatorom.
-Primjer korištenja drivera se nalazi na donjim linkovima.
+Simulator generates values for small electrical scheme. Generated values
+change periodically and can be changed by users action.
+
+Simulator can be started with:
+
+    .../simulator python3 main.py
+
+
+Adapter is component that communicates with simulator and acts
+a abstraction level. It communicates with simulator using protocol
+iec-104. Also, It can forward values from simulator using one of the 
+following protocols:
+
+    http
+    tcp
+    websocket
+
+Adapter can be started with:
+    
+    .../adapter python3 main.py -p {http/tcp/ws}
+
+

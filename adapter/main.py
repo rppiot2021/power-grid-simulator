@@ -17,22 +17,22 @@ from pg.tcp_client2 import TCPClient
 
 ADDRESSES = []
 
-
-class Address:
-
-    @staticmethod
-    def get_formatted_name(asdu_address, io_address):
-        return str(asdu_address) + ";" + str(io_address)
-
-    def __init__(self, asdu_address, io_address):
-        self.asdu_address = asdu_address
-        self.io_address = io_address
-
-    def __str__(self):
-        return f"{self.asdu_address=} {self.io_address=}"
-
-    def formatted_name(self):
-        return Address.get_formatted_name(self.asdu_address, self.io_address)
+# todo later
+# class Address:
+#
+#     @staticmethod
+#     def get_formatted_name(asdu_address, io_address):
+#         return str(asdu_address) + ";" + str(io_address)
+#
+#     def __init__(self, asdu_address, io_address):
+#         self.asdu_address = asdu_address
+#         self.io_address = io_address
+#
+#     def __str__(self):
+#         return f"{self.asdu_address=} {self.io_address=}"
+#
+#     def formatted_name(self):
+#         return Address.get_formatted_name(self.asdu_address, self.io_address)
 
 
 class Strategy(ABC):
@@ -101,6 +101,14 @@ class IEC104Protocol(Strategy):
             get_curr_data_payload
         )
 
+    async def _connection_wrapper(self, payload):
+        while True:
+            try:
+                return await payload()
+            except ConnectionError:
+                print("Connection error")
+                self.connection = await self.connect()
+
     async def send_data(self, value, asdu, io):
 
         print(asdu, io, value, type(value))
@@ -120,8 +128,7 @@ class IEC104Protocol(Strategy):
                 else:
                     raise ValueError
 
-            else:
-                value = value
+            # else use current value, assumption: it is a number
 
         except ValueError:
             return
@@ -147,19 +154,11 @@ class IEC104Protocol(Strategy):
 
         raise Exception("can not send command")
 
-    async def _connection_wrapper(self, payload):
-        while True:
-            try:
-                return await payload()
-            except ConnectionError:
-                print("Connection error")
-                self.connection = await self.connect()
-
 
 class WSProtocol(Strategy):
+
     def __init__(self):
         self.client = WSClient()
-
 
     async def connect(self):
         pass
@@ -197,8 +196,9 @@ class TCPProtocol(Strategy):
 
 async def async_main():
 
-    protocol = TCPProtocol()
-    protocol.client.start_connection()
+    # protocol = TCPProtocol()
+    # protocol.client.start_connection()
+    protocol = WSProtocol()
 
     await protocol.send_data("tmp123456789")
     print("FIRST MESSAGE SENT")
