@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+# todo error correction
+
 
 def get_hamming_cs(pl: list) -> list:
     """
@@ -52,18 +54,60 @@ def get_wrapped_payload(pl: list) -> list:
 
     checksum = get_hamming_cs(pl)
 
-    print("checksum", checksum)
-
     wrapped_payload = pl + checksum
 
     c_b = get_control_b(wrapped_payload)
 
-    print("control b", c_b)
-
     return wrapped_payload + [c_b]
 
 
-if __name__ == '__main__':
+def check_payload(c_pl: list) -> bool:
+    """
+    check if payload is corrupted
+
+    :param c_pl: payload
+    :return: is corrupted
+    """
+
+    pl = c_pl[::]
+
+    c_b = pl.pop()
+
+    if not c_b == get_control_b(pl):
+        return False
+
+    # number of control bits
+    k = 1
+    pl_len = 1
+    true_len = len(pl)
+
+    while not (k + pl_len == true_len):
+        pl_len += 1
+
+        k = 0
+        while 2 ** k < pl_len + k + 1:
+            k += 1
+
+    received_pl = pl[:k + 1]
+    received_hamm_cs = pl[-k:]
+
+    return received_hamm_cs == get_hamming_cs(received_pl)
+
+
+def main():
     payload = [1, 0, 0, 1, 1]
 
-    print(get_wrapped_payload(payload))
+    wrapped_payload = get_wrapped_payload(payload)
+    print("wrapped payload", wrapped_payload)
+
+    # test control value
+    # t = wrapped_payload.pop()
+    # wrapped_payload = wrapped_payload + [1 if t == 0 else 1]
+
+    t = check_payload(wrapped_payload)
+
+    print(t)
+
+
+if __name__ == '__main__':
+    main()
