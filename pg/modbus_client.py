@@ -14,59 +14,71 @@ from client import Client
 class ModbusClient(Client):
 
     def receive(self):
+
         return self.register_data
 
-    async def _run(self):
-
+    async def _client_wrapper(self, payload):
         client = await mod.create_tcp_master(
             mod.ModbusType.TCP,
             hat.drivers.tcp.Address(self.domain_name, self.port))
 
-        while True:
-            is_sth_changed = False
-
-            for j in range(2):
-
-                for i in range(9):
-                    address = i * 1000
-
-                    r_header = await client.read(
-                        1,
-                        DataType.HOLDING_REGISTER,
-                        address,
-                        self.header_len
-                    )
-
-                    expected_len = r_header[0]
-
-                    r_body = await client.read(
-                        1,
-                        DataType.HOLDING_REGISTER,
-                        address + self.header_len,
-                        expected_len
-                    )
-
-                    print("read; address:", address, r_header, r_body)
-
-                    msg = self.split_int_to_str(r_body)
-
-                    print("plaintext:", msg)
-
-                    if address not in self.register_data or \
-                            not self.register_data[address] == msg:
-
-                        is_sth_changed = True
-                        self.control_dict[address].append(msg)
-                        self.register_data[address] = msg
-
-                    else:
-                        print("already read this, not updating")
-
-            if not is_sth_changed:
-                print("nothing changed in two iters, closing")
-                break
+        await payload(client)
 
         client.close()
+
+    async def _run(self):
+
+        async def pl(client):
+            while True:
+                is_sth_changed = False
+
+                for j in range(2):
+
+                    for i in range(9):
+                        address = i * 1000
+
+                        msg = await self._read_address_driver(address, client)
+
+                        print("plaintext:", msg)
+
+                        if address not in self.register_data or \
+                                not self.register_data[address] == msg:
+
+                            is_sth_changed = True
+                            self.control_dict[address].append(msg)
+                            self.register_data[address] = msg
+
+                        else:
+                            print("already read this, not updating")
+
+                if not is_sth_changed:
+                    print("nothing changed in two iters, closing")
+                    break
+
+        await self._client_wrapper(pl)
+
+    async def _read_address(self, address):
+
+        return await self._client_wrapper(self._read_address(address))
+
+    async def _read_address_driver(self, address, client):
+
+        r_header = await client.read(
+            1,
+            DataType.HOLDING_REGISTER,
+            address,
+            self.header_len
+        )
+        expected_len = r_header[0]
+        r_body = await client.read(
+            1,
+            DataType.HOLDING_REGISTER,
+            address + self.header_len,
+            expected_len
+        )
+        print("read; address:", address, r_header, r_body)
+        msg = self.split_int_to_str(r_body)
+        return msg
 
     @asynccontextmanager
     async def tcm_master_connection(self):
@@ -82,12 +94,8 @@ class ModbusClient(Client):
                 client.close()
 
     def str_to_split_int(self, payload):
-        # print("input :", payload)
-
-        # todo test whole sys with diff vals
 
         payload_hex = payload.encode("utf-8").hex()
-        # print("hex   :", payload_hex)
 
         three_div_count = len(payload_hex) % self.fragment_len
 
@@ -100,44 +108,33 @@ class ModbusClient(Client):
         pl_hex_split = [payload_hex[i:i + n] for i in
                         range(0, len(payload_hex), n)]
 
-        # print("hex sp:", pl_hex_split)
-
         pl_int_split = [int("0x" + i, 16) for i in pl_hex_split]
-
-        # print("pl int:", pl_int_split)
 
         return pl_int_split
 
     def split_int_to_str(self, payload):
-        # print("pl int:", payload)
 
         # 2: to remove prefix "0x"
         pl_hex_split = [('0x%03x' % int(i))[2:] for i in payload]
-        # print("hex sp:", pl_hex_split)
 
         payload_hex = "".join(pl_hex_split)
-        # print("tmp   :", payload_hex)
 
         payload_hex = payload_hex[:self.fragment_len].lstrip("0") + payload_hex[self.fragment_len:]
 
-        # print("pl hex:", payload_hex)
-
         try:
-            output = bytes.fromhex(payload_hex).decode('utf-8')
+            return bytes.fromhex(payload_hex).decode('utf-8')
 
         except ValueError:
-            # import traceback
-            # print(traceback.format_exc())
             print("err on", payload)
             print("err", payload_hex)
-            raise ValueError("err")
 
-        return output
+            return ''.join(
+                [chr(int(''.join(c), 16)) for c in zip(a[0::2], a[1::2])])
+
+            # raise ValueError("err")
 
     async def send(self, payload):
         async with self.tcm_master_connection() as client:
-            # print("Successful connection ->", client)
-            # print()
 
             address = payload[0]
             payload = payload[1]
@@ -147,6 +144,7 @@ class ModbusClient(Client):
             '''
                 header
                     message len
+                    
             '''
 
             header = [
@@ -164,8 +162,6 @@ class ModbusClient(Client):
                 address,
                 msg
             )
-
-            # print("\t", msg)
 
             if w_response:
                 print("Write error", w_response.name)
@@ -249,19 +245,4 @@ def main(domain_name, port):
 
 
 if __name__ == '__main__':
-    a = "6e70727275686f73786a73627367627a6b7868656a6a646c6c6164666e697370686a796b6a677a7477797664716e6c70619707270736c6d766261666f786d65647768777367626b67706a6a787062687268697977676c72747a767a70786171626979"
-
-    t = ''.join([chr(int(''.join(c), 16)) for c in zip(a[0::2], a[1::2])])
-    print(t)
-
-    # print(bytes.fromhex(a).decode('utf-8'))
-
-    # import binascii
-    # c =     binascii.unhexlify(a)
-    # print(c)
-
-    # print(bytearray.fromhex(a).decode())
-    # print(codecs.decode(a, "hex"))
-    # print(a.decode("hex"))
-
-    # main()
+    main()
