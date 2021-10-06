@@ -1,15 +1,14 @@
-import codecs
-from builtins import breakpoint
+import random
+import string
 from contextlib import asynccontextmanager
+
 import click
 import hat
 import hat.drivers.modbus as mod
 import hat.drivers.tcp
 from hat.drivers.modbus.common import DataType
-from client import Client
 
-import random
-import string
+from client import Client
 
 
 class ModbusClient(Client):
@@ -20,8 +19,8 @@ class ModbusClient(Client):
     async def _run(self):
 
         client = await mod.create_tcp_master(
-                mod.ModbusType.TCP,
-                hat.drivers.tcp.Address(self.domain_name, self.port))
+            mod.ModbusType.TCP,
+            hat.drivers.tcp.Address(self.domain_name, self.port))
 
         while True:
             is_sth_changed = False
@@ -93,7 +92,6 @@ class ModbusClient(Client):
         three_div_count = len(payload_hex) % self.fragment_len
 
         if not three_div_count == 0:
-
             to_add = self.fragment_len - three_div_count
 
             payload_hex = to_add * "0" + payload_hex
@@ -183,7 +181,6 @@ def get_random_string(length):
 
 
 async def async_main(domain_name, port):
-
     modbus_client = ModbusClient()
 
     modbus_client.register_data = {}
@@ -248,14 +245,13 @@ async def async_main(domain_name, port):
 @click.option('--domain-name', default='127.0.0.1')
 @click.option("--port", default="5021")
 def main(domain_name, port):
-
     hat.aio.run_asyncio(async_main(domain_name, port))
 
 
 if __name__ == '__main__':
     a = "6e70727275686f73786a73627367627a6b7868656a6a646c6c6164666e697370686a796b6a677a7477797664716e6c70619707270736c6d766261666f786d65647768777367626b67706a6a787062687268697977676c72747a767a70786171626979"
 
-    t =  ''.join([chr(int(''.join(c), 16)) for c in zip(a[0::2], a[1::2])])
+    t = ''.join([chr(int(''.join(c), 16)) for c in zip(a[0::2], a[1::2])])
     print(t)
 
     # print(bytes.fromhex(a).decode('utf-8'))

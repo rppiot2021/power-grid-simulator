@@ -8,17 +8,17 @@ from server import Server
 class ModbusServer(Server):
 
     async def write(
-        self,
-        slave,
-        device_id,
-        data_type,
-        start_address,
-        values
+            self,
+            slave,
+            device_id,
+            data_type,
+            start_address,
+            values
     ):
         print("write ", slave, device_id, data_type)
 
         for idx, val in enumerate(values):
-            self.container[start_address+idx] = val
+            self.container[start_address + idx] = val
 
         # return
 
@@ -27,20 +27,21 @@ class ModbusServer(Server):
         breakpoint()
 
     async def read(
-        self,
-        slave,
-        device_id,
-        data_type,
-        start_address,
-        quantity=0
+            self,
+            slave,
+            device_id,
+            data_type,
+            start_address,
+            quantity=0
     ):
         print("read ", slave, device_id, data_type)
         # print(self.container[start_address:(int(start_address)+quantity)])
-        return self.container[start_address:(int(start_address)+quantity)]
+        return self.container[start_address:(int(start_address) + quantity)]
 
     async def slave_cb(self, slave):
         # print("Slave callback ", slave)
         pass
+
 
 async def init_modbus_server():
     server = ModbusServer("127.0.0.1", 5021)

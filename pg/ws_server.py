@@ -1,11 +1,11 @@
 import asyncio
-import websockets
+import signal
 
-from hat.aio import run_asyncio
 import nest_asyncio
+import websockets
+from hat.aio import run_asyncio
 
 from server import Server
-import signal
 
 
 class WSServer(Server):
@@ -17,7 +17,6 @@ class WSServer(Server):
 
     async def echo(self, websocket, path):
         async for message in websocket:
-
             print("received:", message)
             await websocket.send(str("echo: " + str(self.debug_counter) + " "
                                      + str(message)))

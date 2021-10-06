@@ -1,10 +1,10 @@
-import json
 import io
-import struct
-import sys
-import socket
+import json
 import selectors
+import socket
+import struct
 import traceback
+
 from server import Server
 
 
@@ -72,7 +72,7 @@ class Message:
         return obj
 
     def _create_message(
-        self, *, content_bytes, content_type, content_encoding
+            self, *, content_bytes, content_type, content_encoding
     ):
         jsonheader = {
             # "byteorder": sys.byteorder,
@@ -88,7 +88,7 @@ class Message:
     def _create_response_binary_content(self):
         response = {
             "content_bytes": b"First 10 bytes of request: "
-            + self.request[:10],
+                             + self.request[:10],
             "content_type": "binary/custom-server-binary-type",
             "content_encoding": "binary",
         }
@@ -157,7 +157,6 @@ class Message:
     def process_jsonheader(self):
         hdrlen = self._jsonheader_len
         if len(self._recv_buffer) >= hdrlen:
-
             self.jsonheader = self._json_decode(
                 self._recv_buffer[:hdrlen], "utf-8"
             )

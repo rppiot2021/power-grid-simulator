@@ -1,12 +1,9 @@
-import json
-import io
-import struct
-import socket
 import selectors
-from client import Client
-from TCPConnection import TCPConnection
+import socket
+
 from TCPBuffer import BufferType, Buffer
-import time
+from TCPConnection import TCPConnection
+from client import Client
 
 
 class TCPClient(Client):
@@ -49,7 +46,6 @@ class TCPClient(Client):
         self.events = selectors.EVENT_READ | selectors.EVENT_WRITE
         self.tcp = TCPConnection(self.sel, self.sock, self.address,
                                  self.buffer)
-
 
     def register_message(self, sel):
         sel.register(self.sock, self.events, data=self.tcp)

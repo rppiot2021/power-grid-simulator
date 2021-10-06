@@ -1,5 +1,7 @@
 from websocket import create_connection
+
 from client import Client
+
 
 class WSClient(Client):
 

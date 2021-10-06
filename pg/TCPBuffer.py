@@ -1,7 +1,7 @@
-from enum import IntEnum
-import struct
-import json
 import io
+import json
+import struct
+from enum import IntEnum
 
 
 class BufferType(IntEnum):

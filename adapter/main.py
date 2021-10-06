@@ -176,6 +176,7 @@ class WSProtocol(Strategy):
 
 class TCPProtocol(Strategy):
     def __init__(self):
+
         self.client = TCPClient("127.0.0.1", 4567)
 
     async def get_init_data(self):
@@ -192,6 +193,7 @@ class TCPProtocol(Strategy):
 
     def close(self):
         self.client.close_connection()
+
 
 async def async_main():
 

@@ -1,6 +1,7 @@
-import struct
 import selectors
-from TCPBuffer import Buffer, BufferType
+import struct
+
+from TCPBuffer import BufferType
 
 
 class TCPConnection:
@@ -81,7 +82,7 @@ class TCPConnection:
 
     def read(self):
         print("read started")
-        print("recived" ,self.buffer._raw[BufferType.RECV])
+        print("recived", self.buffer._raw[BufferType.RECV])
         self.buffer._raw[BufferType.RECV] = self._recv_raw_msg()
         self.buffer.from_bytes()
 

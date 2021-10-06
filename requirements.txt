@@ -1,4 +1,3 @@
 click==8.0.1
 hat_drivers==0.5.2
 pandapower==2.7.0
-hat==0.1.11

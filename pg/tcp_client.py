@@ -1,10 +1,9 @@
-import json
 import io
-import struct
-import sys
-import socket
+import json
 import selectors
-import traceback
+import socket
+import struct
+
 from client import Client
 
 
@@ -73,7 +72,7 @@ class Message:
         return obj
 
     def _create_message(
-        self, *, content_bytes, content_type, content_encoding
+            self, *, content_bytes, content_type, content_encoding
     ):
         jsonheader = {
             "content-length": len(content_bytes),
@@ -280,4 +279,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

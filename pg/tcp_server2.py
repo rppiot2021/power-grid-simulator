@@ -1,10 +1,12 @@
-import socket
 import selectors
+import socket
 import time
 import traceback
-from server import Server
+
+from TCPBuffer import Buffer
 from TCPConnection import TCPConnection
-from TCPBuffer import BufferType, Buffer
+from server import Server
+
 
 class TCPServer(Server):
 
