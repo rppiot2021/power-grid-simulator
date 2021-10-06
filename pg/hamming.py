@@ -1,48 +1,33 @@
 from collections import defaultdict
 
-control_counter = 1
 
-payload = [1, 1, 0, 0, 1]
-# todo undo reversing
-payload = [1, 0, 0, 1, 1]
+def get_hamming_cs(pl):
+    # number of control bits
+    k = 0
 
-# number of control bits
-k = 0
+    while 2 ** k < len(pl) + k + 1:
+        # inserting control positions
+        pl.insert(2 ** k - 1, "_")
+        k += 1
 
-while 2**k < len(payload) + k + 1:
+    checksum_dict = defaultdict(int)
 
-    # inserting control po
-    payload.insert(2**k - 1, "_")
-    k += 1
+    for i, v in reversed(list(enumerate(pl))):
 
-print(payload[::-1], "\n")
+        if v == 1:
+            c_b = list(bin(i + 1)[2:].zfill(4))
 
-checksum_dict = defaultdict(int)
-result = []
-index = 0
+            for en, va in enumerate(c_b):
+                checksum_dict[en] += int(va)
 
-for i, d in enumerate(payload[::-1]):
+    return [v % 2 for k, v in checksum_dict.items()]
 
-    if d == 1:
-        c_b = list(bin(len(payload) - i)[2:].zfill(4))
-        print(c_b)
-        print([
-            bool(int(i)) for i in c_b
-        ])
 
-        for en, v in enumerate[bool(int(i)) for i in c_b]:
-            checksum_dict[en] = not v
+if __name__ == '__main__':
+    payload = [1, 0, 0, 1, 1]
 
-        # for en, v in enumerate(c_b):
-        #     checksum_dict[en] += int(v)
+    checksum = get_hamming_cs(payload)
 
-print(checksum_dict)
+    print("cheksum", checksum)
 
-t = [0 if v%2==0 else 1 for k,v in checksum_dict.items()]
-# print(t)
-
-checksum_matrix = t
-
-print("\nchecksum matrix", checksum_matrix)
-
-assert checksum_matrix == [1, 1, 0, 1]
+    assert checksum == [1, 1, 0, 1]
