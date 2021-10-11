@@ -3,6 +3,7 @@ utils for address translations
 """
 import os
 import sys
+import time
 
 sys.path.insert(0, os.getcwd() + '/../')
 sys.path.insert(0, os.getcwd() + '/../pg')
@@ -196,14 +197,19 @@ class TCPProtocol(Strategy):
 
 async def async_main():
 
-    # protocol = TCPProtocol()
-    # protocol.client.start_connection()
-    protocol = WSProtocol()
+    protocol = TCPProtocol()
+    protocol.client.start_connection()
+    # protocol = WSProtocol()
 
     await protocol.send_data("tmp123456789")
     print("FIRST MESSAGE SENT")
+    time.sleep(5)
+    print(f"history>>{await protocol.get_curr_data()}<<")
 
-    print(f">>{await protocol.get_curr_data()}<<")
+    print("secoond read started")
+    print(f"history>>{await protocol.get_curr_data()}<<")
+
+    protocol.close()
 
     # protocol.close()
 

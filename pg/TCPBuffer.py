@@ -22,9 +22,14 @@ class Buffer:
                 raise ValueError
             data = self._raw[BufferType.RECV]
 
-        wrapper = io.TextIOWrapper(io.BytesIO(data),
-                                   encoding="utf-8", newline="")
-        print(data)
+        if data is None:
+            data = b'{"content": "Receive buffer is empty."}'
+            return
+
+        print("data to unwrap:", data)
+
+        wrapper = io.TextIOWrapper(io.BytesIO(data),encoding="utf-8", newline="")
+
         formatted = json.load(wrapper)
         wrapper.close()
 
@@ -42,19 +47,28 @@ class Buffer:
         self._raw[BufferType.SEND] = n + content_bytes
         return self._raw[BufferType.SEND]
 
-    def create_response(self, overwrite=False):
+    def create_response(self, overwrite=False, custom_message=None,end=False):
         try:
-            response = {
-                "content": "First 10 bytes of request: " +
-                           str(self._fmt[BufferType.RECV]['client_sent'])[:10]
-            }
-        except KeyError:
-            response = {
-                "content": "Last request was empty."
-            }
+            response = self.read_next()
+        except:
+            try:
+                response = {
+                    "content": "First 10 bytes of request: " +
+                               str(self._fmt[BufferType.RECV]['client_sent'])[:10]
+                }
+            except KeyError:
+                response = {
+                    "content": ""
+                }
 
+            if custom_message:
+                response["content"] = custom_message
+
+        if end:
+            response = {"client_sent": "CLOSE"}
         if overwrite:
             self._fmt[BufferType.SEND] = response
+
         return response
 
     def clear(self, buffer_type):

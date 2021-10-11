@@ -30,18 +30,20 @@ class TCPServer(Server):
             while True:
                 events = self.sel.select(timeout=1)
                 for key, mask in events:
+                    print("BUFFER" , self.buffer._fmt, self.buffer._raw)
+                    print("history" , self.buffer._history)
                     if key.data is None:
                         self.accept_wrapper(key.fileobj)
                     else:
                         message = key.data
+
                         try:
                             message.process_events(mask)
-                        except Exception:
-                            print(
-                                "main: error: exception for",
-                                f"{message.address}:\n{traceback.format_exc()}",
-                            )
-                            message.close()
+                        except BrokenPipeError:
+                            print("broken pipe::client not listening")
+                            time.sleep(2)
+                        except ConnectionResetError:
+                            print("conn reset")
                 time.sleep(2)
 
         except KeyboardInterrupt:

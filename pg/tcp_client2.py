@@ -16,18 +16,19 @@ class TCPClient(Client):
 
     def send(self, payload):
 
-        self.buffer._fmt[BufferType.SEND] = payload
-        self.tcp.write()
+        # self.buffer._fmt[BufferType.SEND] = payload
+        self.tcp.write(payload)
 
     def receive(self):
-
+        self.driver()
+        # self.buffer.clear(BufferType.SEND)
         return self.buffer._history
 
     def create_request(self, msg_payload):
         return self.buffer.create_response(overwrite=True)
 
     def close_connection(self):
-        pass
+        self.tcp.remote_close()
 
     def connect_socket(self, address):
         """Define new Socket object, connect to it with address and port"""
@@ -50,35 +51,38 @@ class TCPClient(Client):
     def register_message(self, sel):
         sel.register(self.sock, self.events, data=self.tcp)
 
-    def driver(self, payload):
+    def driver(self):
         print("driver start")
         if not self.sel:
             print("connection not started")
             return
 
-        request = self.create_request(msg_payload=payload)
-        self.register_message(self.sel, request)
+        # request = self.create_request(msg_payload=payload)
+        # self.register_message(self.sel, request)
 
         try:
-
-            while True:
-                events = self.sel.select(timeout=1)
-                for key, mask in events:
-
-                    request = self.create_request(msg_payload=payload)
-                    message = key.data
-
-                    result = message.process_events(mask)
-
-                    if result:
-                        self.rec_list.append(result)
-
-                        # message.close()
-
-                if not self.sel.get_map():
-                    break
-
-
+            self.tcp.read()
+            # print("events start ")
+            # events = self.sel.select(timeout=1)
+            # # selectors don't work outside loop
+            # print("events end ")
+            #
+            # print("events", events)
+            # for key, mask in events:
+            #     print("key", key, mask)
+            #     # request = self.create_request(msg_payload=payload)
+            #     message = key.data
+            #
+            #     result = message.process_events(mask)
+            #
+            #     if result:
+            #         breakpoint()
+            #         self.rec_list.append(result)
+            #
+            #         # message.close()
+            #
+            # if not self.sel.get_map():
+            #     return
 
         except KeyboardInterrupt:
             print("caught keyboard interrupt, exiting")

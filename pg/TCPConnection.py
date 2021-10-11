@@ -1,5 +1,6 @@
 import selectors
 import struct
+import time
 
 from TCPBuffer import BufferType
 
@@ -24,6 +25,9 @@ class TCPConnection:
             raise ValueError(f"Invalid events mask mode {repr(mode)}.")
         self.selector.modify(self.sock, events, data=self)
 
+    def remote_close(self):
+        self.write(end=True)
+
     def _recv_raw_msg(self):
         """In charge of receiving messages from the connection.
         Function will use first 4 bytes and interpret it as
@@ -32,9 +36,11 @@ class TCPConnection:
         Returns:
             bytes: raw input stream from TCP connection
         """
-
-        raw_message_length = self.sock.recv(4)  # --> b'\x00\x08\xf8\x93'
-
+        try:
+            raw_message_length = self.sock.recv(4)  # --> b'\x00\x08\xf8\x93'
+        except:
+            # print("no header visible")
+            return None
         if not raw_message_length:
             return None
 
@@ -57,12 +63,13 @@ class TCPConnection:
 
             self.read()
             try:
-                self._set_selector_events_mask("w")
+                print("r")
+                self._set_selector_events_mask("rw")
             except:
                 pass
 
         if mask & selectors.EVENT_WRITE:
-
+            print("w")
             self.write()
             try:
                 self._set_selector_events_mask("r")
@@ -77,19 +84,35 @@ class TCPConnection:
             if "client_sent" in new_message:
                 if new_message['client_sent'] == "CLOSE":
                     self.close()
-
-        self.buffer.push_and_clear()
+                    self.buffer.clear(BufferType.SEND)
+                    self.buffer.clear(BufferType.RECV)
+                    return
+        if new_message != {}:
+            self.buffer.push_and_clear()
 
     def read(self):
         print("read started")
+        for i in range(5):
+            try:
+                self.buffer._raw[BufferType.RECV] = self._recv_raw_msg()
+                if self.buffer._raw[BufferType.RECV] is not None:
+                    break
+                time.sleep(1)
+            except KeyboardInterrupt:
+                break
+
         print("recived", self.buffer._raw[BufferType.RECV])
-        self.buffer._raw[BufferType.RECV] = self._recv_raw_msg()
         self.buffer.from_bytes()
 
         self.process_message()
 
-    def write(self):
-        self.buffer.create_response(overwrite=True)
+    def write(self, payload=None,end=False):
+
+        self.buffer.create_response(overwrite=True,
+                                    custom_message=payload,
+                                    end=end)
+
+        print("buffer send fmt", )
         self.buffer.to_bytes()
         print("created_message", self.buffer._fmt[BufferType.SEND])
 
