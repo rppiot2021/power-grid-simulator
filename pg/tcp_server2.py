@@ -32,13 +32,18 @@ class TCPServer(Server):
                 for key, mask in events:
                     print("BUFFER" , self.buffer._fmt, self.buffer._raw)
                     print("history" , self.buffer._history)
+                    print(key.data)
                     if key.data is None:
                         self.accept_wrapper(key.fileobj)
                     else:
                         message = key.data
 
                         try:
-                            message.process_events(mask)
+                            close = message.process_events(mask)
+
+                            if close:
+                                self.conn = None
+                                continue
                         except BrokenPipeError:
                             print("broken pipe::client not listening")
                             time.sleep(2)

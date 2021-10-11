@@ -61,7 +61,7 @@ class TCPConnection:
     def process_events(self, mask):
         if mask & selectors.EVENT_READ:
 
-            self.read()
+            close = self.read()
             try:
                 print("r")
                 self._set_selector_events_mask("rw")
@@ -70,11 +70,14 @@ class TCPConnection:
 
         if mask & selectors.EVENT_WRITE:
             print("w")
-            self.write()
+            close = self.write()
             try:
                 self._set_selector_events_mask("r")
             except:
                 pass
+
+        return close
+
 
     def process_message(self):
         new_message = self.buffer._fmt[BufferType.RECV]
@@ -86,9 +89,11 @@ class TCPConnection:
                     self.close()
                     self.buffer.clear(BufferType.SEND)
                     self.buffer.clear(BufferType.RECV)
-                    return
+                    return True
         if new_message != {}:
             self.buffer.push_and_clear()
+
+        return False
 
     def read(self):
         print("read started")
@@ -104,7 +109,9 @@ class TCPConnection:
         print("recived", self.buffer._raw[BufferType.RECV])
         self.buffer.from_bytes()
 
-        self.process_message()
+        close = self.process_message()
+
+        return close
 
     def write(self, payload=None,end=False):
 
