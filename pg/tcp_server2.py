@@ -28,11 +28,11 @@ class TCPServer(Server):
 
         try:
             while True:
-                events = self.sel.select(timeout=1)
+                events = self.sel.select(timeout=0.5)
                 for key, mask in events:
-                    print("BUFFER" , self.buffer._fmt, self.buffer._raw)
-                    print("history" , self.buffer._history)
-                    print(key.data)
+                    print((" " * 17) + "BUFFER" , self.buffer._fmt, self.buffer._raw)
+                    print((" " * 17) + "history" , self.buffer.return_history())
+
                     if key.data is None:
                         self.accept_wrapper(key.fileobj)
                     else:
@@ -49,7 +49,7 @@ class TCPServer(Server):
                             time.sleep(2)
                         except ConnectionResetError:
                             print("conn reset")
-                time.sleep(2)
+                # time.sleep(2)
 
         except KeyboardInterrupt:
             print("caught keyboard interrupt, exiting")

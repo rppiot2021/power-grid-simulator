@@ -9,6 +9,12 @@ class BufferType(IntEnum):
     RECV = 1
 
 
+class MessageType(IntEnum):
+    CONTENT = 0
+    COMMAND = 1
+
+
+
 class Buffer:
     def __init__(self, ):
         self._raw = [b"", b""]
@@ -26,9 +32,8 @@ class Buffer:
             data = b'{"content": "Receive buffer is empty."}'
             return
 
-        print("data to unwrap:", data)
-
-        wrapper = io.TextIOWrapper(io.BytesIO(data),encoding="utf-8", newline="")
+        wrapper = io.TextIOWrapper(io.BytesIO(data), encoding="utf-8",
+                                   newline="")
 
         formatted = json.load(wrapper)
         wrapper.close()
@@ -47,37 +52,57 @@ class Buffer:
         self._raw[BufferType.SEND] = n + content_bytes
         return self._raw[BufferType.SEND]
 
-    def create_response(self, overwrite=False, custom_message=None,end=False):
-        try:
-            response = self.read_next()
-        except:
+    def create_response(self,
+                        data_type=MessageType.CONTENT,
+                        custom_message=None
+                        ):
+        """
+        Generates response message. By default,response is generated from
+        last element in history, DO NOT READ buffer to generate response,
+        it works the other way ( create_response FILLS buffer).
+        :param data_type:
+        :param me:
+        :param custom_message:
+        :param end:
+        :return:
+        """
+
+        if data_type == MessageType.COMMAND:
+            self._fmt[BufferType.SEND] = {data_type: custom_message}
+            return self._fmt[BufferType.SEND]
+
+        else:
             try:
-                response = {
-                    "content": "First 10 bytes of request: " +
-                               str(self._fmt[BufferType.RECV]['client_sent'])[:10]
-                }
-            except KeyError:
-                response = {
-                    "content": ""
-                }
+                response = self.read_next()
+            except IndexError:
+                # history is empty -> generate generic message
 
-            if custom_message:
-                response["content"] = custom_message
+                response = self._fmt[BufferType.RECV]
 
-        if end:
-            response = {"client_sent": "CLOSE"}
-        if overwrite:
+                if data_type in response:
+                    response = {data_type: response[data_type]}
+
+                else:
+                    response = {data_type: ""}
+                if custom_message:
+                    response[data_type] = custom_message
+
             self._fmt[BufferType.SEND] = response
-
-        return response
+            return response
 
     def clear(self, buffer_type):
         self._fmt[buffer_type] = {}
         self._raw[buffer_type] = b''
 
     def read_next(self):
-        return self._history.pop()
+        last_val = self._history.pop()
+        return {MessageType.CONTENT: last_val}
 
     def push_and_clear(self):
-        self._history.append(self._fmt[BufferType.RECV])
+        for k, v in self._fmt[BufferType.RECV].items():
+            if k == MessageType.CONTENT:
+                self._history.append(v)
         self.clear(BufferType.RECV)
+
+    def return_history(self):
+        return self._history

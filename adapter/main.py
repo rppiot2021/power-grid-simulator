@@ -14,6 +14,7 @@ import asyncio
 from abc import ABC, abstractmethod
 from pg.ws_client import WSClient
 from pg.tcp_client2 import TCPClient
+from pg.TCPBuffer import MessageType
 
 
 ADDRESSES = []
@@ -183,10 +184,14 @@ class TCPProtocol(Strategy):
         return self.get_curr_data()
 
     async def get_curr_data(self):
-        return self.client.receive()
+        try:
+            # return self.client.buffer.read_next()
+            return self.client.receive()
+        except IndexError:
+            self.close()
 
-    async def send_data(self, value, asdu=0, io=0):
-        self.client.send(value)
+    async def send_data(self, value, asdu=0, io=0, data_type=MessageType.CONTENT):
+        self.client.send(value, data_type)
 
     async def connect(self):
         self.client.start_connection(dont_close=True)
@@ -195,25 +200,28 @@ class TCPProtocol(Strategy):
         self.client.close_connection()
 
 
+
 async def async_main():
 
     protocol = TCPProtocol()
     protocol.client.start_connection()
-    # protocol = WSProtocol()
 
-    await protocol.send_data("tmp123456789")
-    print("FIRST MESSAGE SENT")
-    time.sleep(5)
-    print(f"history>>{await protocol.get_curr_data()}<<")
+    await protocol.send_data("1.")
+    await protocol.send_data("2.")
+    await protocol.send_data("3.")
+    await protocol.send_data("4.")
+    time.sleep(2)
 
-    print("secoond read started")
-    print(f"history>>{await protocol.get_curr_data()}<<")
+
+    print(f"     {await protocol.get_curr_data()}")
+    print(f"     {await protocol.get_curr_data()}")
+    print(f"     {await protocol.get_curr_data()}")
+    print(f"     {await protocol.get_curr_data()}")
+
 
     protocol.close()
 
-    # protocol.close()
-
-    #
+    # protocol = WSProtocol()
     # protocol = IEC104Protocol()
     # await protocol.connect()
     #

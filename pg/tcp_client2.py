@@ -1,7 +1,7 @@
 import selectors
 import socket
 
-from TCPBuffer import BufferType, Buffer
+from TCPBuffer import BufferType, Buffer,MessageType
 from TCPConnection import TCPConnection
 from client import Client
 
@@ -14,21 +14,29 @@ class TCPClient(Client):
         self.buffer = Buffer()
         self.rec_list = []
 
-    def send(self, payload):
-
-        # self.buffer._fmt[BufferType.SEND] = payload
-        self.tcp.write(payload)
+    def send(self, payload, data_type=MessageType.CONTENT):
+        self.tcp.write(payload, data_type=data_type)
 
     def receive(self):
-        self.driver()
-        # self.buffer.clear(BufferType.SEND)
-        return self.buffer._history
+
+        if not self.sel:
+            print("connection not started")
+            return
+        try:
+            self.tcp.read()
+        except KeyboardInterrupt:
+            print("caught keyboard interrupt, exiting")
+        finally:
+            self.sel.close()
+
+        return self.buffer.return_history()
 
     def create_request(self, msg_payload):
-        return self.buffer.create_response(overwrite=True)
+        return self.buffer.create_response()
 
     def close_connection(self):
         self.tcp.remote_close()
+        # self.close_connection()
 
     def connect_socket(self, address):
         """Define new Socket object, connect to it with address and port"""
@@ -52,6 +60,7 @@ class TCPClient(Client):
         sel.register(self.sock, self.events, data=self.tcp)
 
     def driver(self):
+        # todo continuous read
         print("driver start")
         if not self.sel:
             print("connection not started")
@@ -89,14 +98,14 @@ class TCPClient(Client):
         finally:
             self.sel.close()
 
-
-def main():
-    tcp_client = TCPClient("127.0.0.1", 4567)
-    tcp_client.send("tmp 1234567890")
-    tcp_client.send("aaaaa bbbb ccc dd e")
-
-    # print(tcp_client.receive())
-
-
-if __name__ == '__main__':
-    main()
+#
+# def main():
+#     tcp_client = TCPClient("127.0.0.1", 4567)
+#     tcp_client.send("tmp 1234567890")
+#     tcp_client.send("aaaaa bbbb ccc dd e")
+#
+#     # print(tcp_client.receive())
+#
+#
+# if __name__ == '__main__':
+#     main()
