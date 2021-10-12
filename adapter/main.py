@@ -207,167 +207,180 @@ class TCPProtocol(Strategy):
 from pg.client import Client
 
 
-# todo this client should be in runtime changable
-class Adapter(WSClient):
-    """
-    notify_small
-        if True; return everything when get_curr_data is passed without
-        checking if new values are same as old
-
-        sometimes value is passed as new value because there are not
-        enough decimal places to check
-
-        you can choose to ignore those values
-
-
-    get_curr_state and get_curr_data can not work in tandem
-
-    state_or_data
-        True:
-            get_curr_state works
-
-        False:
-            get_curr_data works
-
-    """
-
-    def __init__(
-        self,
+def get_adapter(
+        client,
         host_name,
         port,
-        state_or_data=True,
-        notify_small=False,
-        server_type=WSServer):
+        state_or_data=False,
+        notify_small=False
+    ):
 
-        super().__init__(host_name, port)
-
-        # todo add option to change, not sure if needed
-        self.protocol = IEC104Protocol()
-        self.data = {}
-        self.notify_small = notify_small
-        self.is_init_called = False
-        self._state_or_data = state_or_data
-        self.server_type = server_type
-
-    async def _run(self):
+    # todo this client should be in runtime changable
+    class Adapter(client):
         """
-        driver for state memory
+        notify_small
+            if True; return everything when get_curr_data is passed without
+            checking if new values are same as old
 
-        :return:
+            sometimes value is passed as new value because there are not
+            enough decimal places to check
+
+            you can choose to ignore those values
+
+
+        get_curr_state and get_curr_data can not work in tandem
+
+        state_or_data
+            True:
+                get_curr_state works
+
+            False:
+                get_curr_data works
+
         """
 
-        if not self._state_or_data:
-            raise Exception("this method can not be called in this mode,"
-                            "switch on @state_or_data flag")
+        def __init__(
+            self,
+            host_name,
+            port,
+            state_or_data=True,
+            notify_small=False,
 
-        t = await self.protocol.get_init_data()
-        # self.data = dict(self.data, **{var_name: e.payload.data})
-        # self.data = dict(self.data, t)
-        self.data.update(t)
+        ):
 
-        print(self.data)
+            super().__init__(host_name, port)
 
-        while True:
-            t = await self.protocol.get_curr_data()
+            # todo add option to change, not sure if needed
+            self.protocol = IEC104Protocol()
+            self.data = {}
+            self.notify_small = notify_small
+            self.is_init_called = False
+            self._state_or_data = state_or_data
+            # self.server_type = server_type
 
-            old = {k: v for k, v in self.data.items()}
+            self.client = WSClient
 
+
+        async def _run(self):
+            """
+            driver for state memory
+
+            :return:
+            """
+
+            if not self._state_or_data:
+                raise Exception("this method can not be called in this mode,"
+                                "switch on @state_or_data flag")
+
+            t = await self.protocol.get_init_data()
+            # self.data = dict(self.data, **{var_name: e.payload.data})
+            # self.data = dict(self.data, t)
             self.data.update(t)
 
-            diff = set(old.items()) ^ set(self.data.items())
-            print("diff", diff)
+            print(self.data)
 
-            # print(self.data)
+            while True:
+                t = await self.protocol.get_curr_data()
 
-    async def get_curr_state(self):
-        """
-        return current state of system
-        include all values that were ever received
+                old = {k: v for k, v in self.data.items()}
 
-        :return:
-        """
+                self.data.update(t)
 
-        if not self._state_or_data:
-            raise Exception("this method can not be called in this mode,"
-                            "switch on @state_or_data flag")
+                diff = set(old.items()) ^ set(self.data.items())
+                print("diff", diff)
 
-        await self.send(str(self.data))
+                # print(self.data)
 
-        return self.data
+        async def get_curr_state(self):
+            """
+            return current state of system
+            include all values that were ever received
 
-    async def get_init_data(self):
-        """
-        return only initial data of system
+            :return:
+            """
 
-        :return:
-        """
+            if not self._state_or_data:
+                raise Exception("this method can not be called in this mode,"
+                                "switch on @state_or_data flag")
 
-        # todo check if whole system state can be retrieved with interrogate
-        if self.is_init_called:
-            raise Exception("init already called")
-        self.is_init_called = True
+            await self.send(str(self.data))
 
-        t = await self.protocol.get_init_data()
-        print(len(t))
-        self.data.update(t)
+            return self.data
 
-        await self.send(str(t))
+        async def get_init_data(self):
+            """
+            return only initial data of system
 
-        return t
+            :return:
+            """
 
-    async def get_curr_data(self):
-        """
-        catch one new state of system
+            # todo check if whole system state can be retrieved with interrogate
+            if self.is_init_called:
+                raise Exception("init already called")
+            self.is_init_called = True
+
+            t = await self.protocol.get_init_data()
+            print(len(t))
+            self.data.update(t)
+
+            await self.send(str(t))
+
+            return t
+
+        async def get_curr_data(self):
+            """
+            catch one new state of system
 
 
-        :return:
-        """
+            :return:
+            """
 
-        if self._state_or_data:
-            raise Exception("this method can not be called in this mode,"
-                            "switch off @state_or_data flag")
+            if self._state_or_data:
+                raise Exception("this method can not be called in this mode,"
+                                "switch off @state_or_data flag")
 
-        if not self.is_init_called:
-            raise Exception("init was not called")
+            if not self.is_init_called:
+                raise Exception("init was not called")
 
-        while True:
+            while True:
 
-            t = await self.protocol.get_curr_data()
+                t = await self.protocol.get_curr_data()
 
-            if not self.notify_small:
+                if not self.notify_small:
 
-                for k, v in t.items():
-                    if k in self.data:
+                    for k, v in t.items():
+                        if k in self.data:
 
-                        if self.data[k] != v:
+                            if self.data[k] != v:
+                                self.data.update(t)
+                                await self.send(str(t))
+                                return t
+
+                        else:
                             self.data.update(t)
                             await self.send(str(t))
                             return t
 
-                    else:
-                        self.data.update(t)
-                        await self.send(str(t))
-                        return t
+                else:
+                    self.data.update(t)
+                    await self.send(str(t))
+                    return t
 
-            else:
-                self.data.update(t)
-                await self.send(str(t))
-                return t
+        async def update_data(self):
+            """
+            asdu
+            io
+            payload
 
-    async def update_data(self):
-        """
-        asdu
-        io
-        payload
+            try multiple times to update, add var for control
+            this exist in some other script
+            :return:
+            """
 
-        try multiple times to update, add var for control
-        this exist in some other script
-        :return:
-        """
+            #         await self.send(t)
+            raise NotImplementedError()
 
-        #         await self.send(t)
-        raise NotImplementedError()
-
+    return Adapter(host_name, port, state_or_data, notify_small)
 
 # async def init_server():
 #     server = WSServer("localhost", 8765)
@@ -403,7 +416,8 @@ async def async_main():
     # todo .sh that starts this, simulator and designated server
 
     # todo try with localhost inastead of addr
-    adapter = Adapter("127.0.0.1", 8765, state_or_data=False, notify_small=False, server_type=WSServer)
+    adapter = get_adapter(WSClient, "127.0.0.1", 8765, state_or_data=False, notify_small=False)
+    # adapter = Adapter("127.0.0.1", 8765, state_or_data=False, notify_small=False)
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     adapter.debug_counter = 1
