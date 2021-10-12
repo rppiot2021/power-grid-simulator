@@ -14,7 +14,6 @@ class MessageType(IntEnum):
     COMMAND = 1
 
 
-
 class Buffer:
     def __init__(self, ):
         self._raw = [b"", b""]

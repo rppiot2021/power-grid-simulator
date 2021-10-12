@@ -1,7 +1,7 @@
 import selectors
 import socket
 
-from TCPBuffer import BufferType, Buffer,MessageType
+from TCPBuffer import Buffer, MessageType
 from TCPConnection import TCPConnection
 from client import Client
 

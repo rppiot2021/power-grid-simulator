@@ -17,8 +17,6 @@ from pg.tcp_client2 import TCPClient
 from pg.TCPBuffer import MessageType
 
 
-ADDRESSES = []
-
 # todo later
 # class Address:
 #
@@ -190,7 +188,8 @@ class TCPProtocol(Strategy):
         except IndexError:
             self.close()
 
-    async def send_data(self, value, asdu=0, io=0, data_type=MessageType.CONTENT):
+    async def send_data(self, value, asdu=0, io=0,
+                        data_type=MessageType.CONTENT):
         self.client.send(value, data_type)
 
     async def connect(self):
@@ -200,50 +199,184 @@ class TCPProtocol(Strategy):
         self.client.close_connection()
 
 
+from pg.server import Server
+
+
+# only return new data, add mech for all data
+class Adapter(Server):
+
+    def __init__(self, host_name, port):
+        super().__init__(host_name, port)
+
+        self.protocol = IEC104Protocol()
+        self.data = {}
+
+    async def get_init_data(self):
+        t = await self.protocol.get_init_data()
+        print(len(t))
+        self.data.update(t)
+        return await self.protocol.get_init_data()
+
+    async def get_curr_data(self):
+
+        while True:
+
+            t = await self.protocol.get_curr_data()
+
+            is_sth_chngd = False
+            for k, v in t.items():
+                # print(k, "->", v)
+                if k in self.data:
+                    print("exist")
+
+                    if self.data[k] == v:
+                        # print("same as old")
+                        pass
+                    else:
+                        # print("update val")
+                        is_sth_chngd = True
+                #         notify
+
+                else:
+                    # print("dont exist, will add sth")
+                    is_sth_chngd = True
+                #     notify
+
+            if is_sth_chngd:
+                print("change")
+
+                return t
+            else:
+                print("no change")
+                print("most possibly to small to register")
+
+        # return t
+
+
+class AdapterAll(Server):
+
+    def __init__(self, host_name, port):
+        super().__init__(host_name, port)
+
+        self.protocol = IEC104Protocol()
+        self.data = {}
+
+    async def _run(self):
+        t = await self.protocol.get_init_data()
+        # self.data = dict(self.data, **{var_name: e.payload.data})
+        # self.data = dict(self.data, t)
+        self.data.update(t)
+
+        print(self.data)
+
+        while True:
+            # print()
+            # old = {k: v for k, v in self.data.items()}
+            t = await self.protocol.get_curr_data()
+            # # self.data.update(t)
+            #
+            # # print(type(t), t)
+            #
+            # is_sth_chngd = False
+            # for k, v in t.items():
+            #     # print(k, "->", v)
+            #     if k in self.data:
+            #         # print("exist")
+            #
+            #         if self.data[k] == v:
+            #             # print("same as old")
+            #             pass
+            #         else:
+            #             # print("update val")
+            #             is_sth_chngd = True
+            #     #         notify
+            #
+            #     else:
+            #         # print("dont exist, will add sth")
+            #         is_sth_chngd = True
+            #     #     notify
+            #
+            #
+            # if is_sth_chngd:
+            #     print("change")
+            #
+            # else:
+            #     print("no change")
+
+            self.data.update(t)
+            # diff = set(old.items()) ^ set(self.data.items())
+            #
+            # print("diff", diff)
+            #
+            # if not diff:
+            #     # diff is not registered because it is to small
+            #     # print("diff to small to register")
+            #     print("no change")
+            #
+            # else:
+            #     print("change")
+            print(self.data)
+
+    async def get_init_data(self):
+        t = await self.protocol.get_init_data()
+        print(len(t))
+        return await self.protocol.get_init_data()
+
+    async def get_curr_data(self):
+        return await self.protocol.get_curr_data()
+
 
 async def async_main():
+    # protocol = TCPProtocol()
+    # protocol.client.start_connection()
+    #
+    # await protocol.send_data("1.")
+    # await protocol.send_data("2.")
+    # await protocol.send_data("3.")
+    # await protocol.send_data("4.")
+    # time.sleep(2)
+    #
+    # print(f"     {await protocol.get_curr_data()}")
+    # print(f"     {await protocol.get_curr_data()}")
+    # print(f"     {await protocol.get_curr_data()}")
+    # print(f"     {await protocol.get_curr_data()}")
+    #
+    # protocol.close()
 
-    protocol = TCPProtocol()
-    protocol.client.start_connection()
+    t = AdapterAll("123.4.5.6", 23)
+    await t.protocol.connect()
 
-    await protocol.send_data("1.")
-    await protocol.send_data("2.")
-    await protocol.send_data("3.")
-    await protocol.send_data("4.")
-    time.sleep(2)
+    # print(await t.get_init_data())
+    # print(await t.get_init_data())
+    # print(await t.get_curr_data())
+    # print(await t.get_curr_data())
+    # print(await t.get_curr_data())
 
-
-    print(f"     {await protocol.get_curr_data()}")
-    print(f"     {await protocol.get_curr_data()}")
-    print(f"     {await protocol.get_curr_data()}")
-    print(f"     {await protocol.get_curr_data()}")
-
-
-    protocol.close()
+    await t._run()
+    return
 
     # protocol = WSProtocol()
-    # protocol = IEC104Protocol()
-    # await protocol.connect()
-    #
-    # t = await protocol.get_init_data()
-    # print("init data")
-    # [print(i) for i in t.items()]
-    #
-    # t = await protocol.get_curr_data()
-    # print("curr data")
-    # [print(i) for i in t.items()]
-    #
-    # await protocol.send_data("closed", 30, 0)
-    # print("data sent")
-    #
-    # while True:
-    #     t = await protocol.get_curr_data()
-    #     print("curr data")
-    #     [print(i) for i in t.items()]
+    protocol = IEC104Protocol()
+    await protocol.connect()
+
+    t = await protocol.get_init_data()
+    print("init data")
+    [print(i) for i in t.items()]
+
+    t = await protocol.get_curr_data()
+    print("curr data")
+    [print(i) for i in t.items()]
+
+    await protocol.send_data("closed", 30, 0)
+    print("data sent")
+
+    while True:
+        t = await protocol.get_curr_data()
+        print("curr data")
+        [print(i) for i in t.items()]
 
 
 def main():
-
     run_asyncio(async_main())
 
 

@@ -119,7 +119,8 @@ class ModbusClient(Client):
 
         payload_hex = "".join(pl_hex_split)
 
-        payload_hex = payload_hex[:self.fragment_len].lstrip("0") + payload_hex[self.fragment_len:]
+        payload_hex = payload_hex[:self.fragment_len].lstrip("0") + payload_hex[
+                                                                    self.fragment_len:]
 
         try:
             return bytes.fromhex(payload_hex).decode('utf-8')
@@ -135,7 +136,6 @@ class ModbusClient(Client):
 
     async def send(self, payload):
         async with self.tcm_master_connection() as client:
-
             address = payload[0]
             payload = payload[1]
 

@@ -1,7 +1,6 @@
 import selectors
 import socket
 import time
-import traceback
 
 from TCPBuffer import Buffer
 from TCPConnection import TCPConnection
@@ -30,8 +29,9 @@ class TCPServer(Server):
             while True:
                 events = self.sel.select(timeout=0.5)
                 for key, mask in events:
-                    print((" " * 17) + "BUFFER" , self.buffer._fmt, self.buffer._raw)
-                    print((" " * 17) + "history" , self.buffer.return_history())
+                    print((" " * 17) + "BUFFER", self.buffer._fmt,
+                          self.buffer._raw)
+                    print((" " * 17) + "history", self.buffer.return_history())
 
                     if key.data is None:
                         self.accept_wrapper(key.fileobj)
