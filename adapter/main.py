@@ -206,6 +206,7 @@ class TCPProtocol(Strategy):
 
 from pg.client import Client
 
+
 # todo this client should be in runtime changable
 class Adapter(WSClient):
     """
@@ -366,33 +367,6 @@ class Adapter(WSClient):
 
         #         await self.send(t)
         raise NotImplementedError()
-
-    # todo for this concrete implementation
-    # async def _server_driver(self, websocket, path):
-    #
-    #     async for message in websocket:
-    #         print("received:", message)
-    #         await websocket.send(str("echo: " + str(self.debug_counter) + " "
-    #                                  + str(message)))
-    #         self.debug_counter += 1
-    #         print()
-    #
-    #         raw_data = message.split(";")
-    #
-    #         if raw_data[0] == "get_curr_state":
-    #             print("get curr state")
-    #
-    #         elif raw_data[0] == "get_init_data":
-    #             print("get init data")
-    #
-    #         elif raw_data[0] == "get_curr_data":
-    #             print("get curr data")
-    #
-    #         elif raw_data[0] == "update_data":
-    #             print("update data")
-    #
-    #         else:
-    #             raise NotImplementedError
 
 
 # async def init_server():

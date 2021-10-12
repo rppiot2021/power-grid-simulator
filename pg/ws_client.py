@@ -1,3 +1,4 @@
+from hat.aio import run_asyncio
 from websocket import create_connection
 
 from client import Client
@@ -21,28 +22,32 @@ class WSClient(Client):
         # receive from socket
         return self.connection.recv()
 
-
-def main():
+async def async_main():
     client = WSClient()
 
-    client.send("1")
+    await    client.send("1")
 
     print(client.receive())
-    client.send("2")
+    await    client.send("2")
     print(client.receive())
     # print(client.receive())
     # print(client.receive())
     # print(client.receive())
-    client.send("3")
-    client.send("4")
+    await client.send("3")
+    await client.send("4")
     print(client.receive())
     print(client.receive())
     # print(client.receive())
-    client.send("5")
-    client.send("6")
+    await client.send("5")
+    await client.send("6")
     print(client.receive())
 
     client.connection.close()
+
+
+def main():
+    run_asyncio(async_main())
+
 
 
 if __name__ == '__main__':
