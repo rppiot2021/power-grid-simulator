@@ -202,60 +202,130 @@ class TCPProtocol(Strategy):
 from pg.server import Server
 
 
-# only return new data, add mech for all data
 class Adapter(Server):
 
-    def __init__(self, host_name, port):
+    """
+    notify_small
+        if True; return everything when get_curr_data is passed without
+        checking if new values are same as old
+
+        sometimes value is passed as new value because there are not
+        enough decimal places to check
+
+        you can choose to ignore those values
+
+
+    get_curr_state and get_curr_data can not work in tandem
+
+    state_or_data
+        True:
+            get_curr_state works
+
+        False:
+            get_curr_data works
+
+    """
+
+    def __init__(self, host_name, port, state_or_data=True, notify_small=False):
         super().__init__(host_name, port)
 
         self.protocol = IEC104Protocol()
         self.data = {}
 
+        self.notify_small = notify_small
+
+        self.is_init_called = False
+        self.state_or_data = state_or_data
+
+    async def _run(self):
+        """
+        driver for state memory
+
+        :return:
+        """
+
+        t = await self.protocol.get_init_data()
+        # self.data = dict(self.data, **{var_name: e.payload.data})
+        # self.data = dict(self.data, t)
+        self.data.update(t)
+
+        print(self.data)
+
+        while True:
+            t = await self.protocol.get_curr_data()
+
+            old = {k: v for k, v in self.data.items()}
+
+            self.data.update(t)
+
+            diff = set(old.items()) ^ set(self.data.items())
+            print("diff", diff)
+
+            # print(self.data)
+
+    async def get_curr_state(self):
+        """
+        return current state of system
+        include all values that were ever received
+
+        :return:
+        """
+
+        return self.data
+
     async def get_init_data(self):
+        """
+        return only initial data of system
+
+        :return:
+        """
+
+        if self.is_init_called:
+            raise Exception("init already called")
+        self.is_init_called = True
+
         t = await self.protocol.get_init_data()
         print(len(t))
         self.data.update(t)
         return await self.protocol.get_init_data()
 
     async def get_curr_data(self):
+        """
+        catch one new state of system
+
+
+        :return:
+        """
+
+
+        if not self.is_init_called:
+            raise Exception("init was not called")
 
         while True:
 
             t = await self.protocol.get_curr_data()
 
-            is_sth_chngd = False
-            for k, v in t.items():
-                # print(k, "->", v)
-                if k in self.data:
-                    print("exist")
+            if not self.notify_small:
 
-                    if self.data[k] == v:
-                        # print("same as old")
-                        pass
+                for k, v in t.items():
+                    if k in self.data:
+
+                        if self.data[k] != v:
+                            self.data.update(t)
+                            return t
+
                     else:
-                        # print("update val")
-                        is_sth_chngd = True
-                #         notify
+                        self.data.update(t)
+                        return t
 
-                else:
-                    # print("dont exist, will add sth")
-                    is_sth_chngd = True
-                #     notify
-
-            if is_sth_chngd:
-                print("change")
-
-                return t
             else:
-                print("no change")
-                print("most possibly to small to register")
-
-        # return t
+                self.data.update(t)
+                return t
 
 
 class AdapterAll(Server):
 
-    def __init__(self, host_name, port):
+    def __init__(self, host_name, port, _):
         super().__init__(host_name, port)
 
         self.protocol = IEC104Protocol()
@@ -270,60 +340,25 @@ class AdapterAll(Server):
         print(self.data)
 
         while True:
-            # print()
-            # old = {k: v for k, v in self.data.items()}
             t = await self.protocol.get_curr_data()
-            # # self.data.update(t)
-            #
-            # # print(type(t), t)
-            #
-            # is_sth_chngd = False
-            # for k, v in t.items():
-            #     # print(k, "->", v)
-            #     if k in self.data:
-            #         # print("exist")
-            #
-            #         if self.data[k] == v:
-            #             # print("same as old")
-            #             pass
-            #         else:
-            #             # print("update val")
-            #             is_sth_chngd = True
-            #     #         notify
-            #
-            #     else:
-            #         # print("dont exist, will add sth")
-            #         is_sth_chngd = True
-            #     #     notify
-            #
-            #
-            # if is_sth_chngd:
-            #     print("change")
-            #
-            # else:
-            #     print("no change")
+
+            old = {k: v for k, v in self.data.items()}
 
             self.data.update(t)
-            # diff = set(old.items()) ^ set(self.data.items())
-            #
-            # print("diff", diff)
-            #
-            # if not diff:
-            #     # diff is not registered because it is to small
-            #     # print("diff to small to register")
-            #     print("no change")
-            #
-            # else:
-            #     print("change")
-            print(self.data)
+
+            diff = set(old.items()) ^ set(self.data.items())
+            print("diff", diff)
+
+            # print(self.data)
 
     async def get_init_data(self):
+
         t = await self.protocol.get_init_data()
         print(len(t))
         return await self.protocol.get_init_data()
 
     async def get_curr_data(self):
-        return await self.protocol.get_curr_data()
+        return self.data
 
 
 async def async_main():
@@ -343,14 +378,17 @@ async def async_main():
     #
     # protocol.close()
 
-    t = AdapterAll("123.4.5.6", 23)
+    t = AdapterAll("123.4.5.6", 23, False)
     await t.protocol.connect()
 
-    # print(await t.get_init_data())
-    # print(await t.get_init_data())
-    # print(await t.get_curr_data())
-    # print(await t.get_curr_data())
-    # print(await t.get_curr_data())
+    print(await t.get_init_data())
+
+    # while True:
+    #     old = {k: v for k, v in t.data.items()}
+    #     print(await t.get_curr_data())
+    #     diff = set(old.items()) ^ set(t.data.items())
+    #     print("diff", diff)
+
 
     await t._run()
     return
