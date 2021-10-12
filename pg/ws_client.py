@@ -14,7 +14,7 @@ class WSClient(Client):
     def _get_uri(self):
         return "ws://" + str(self.domain_name) + ":" + str(self.port)
 
-    def send(self, payload):
+    async def send(self, payload):
         self.connection.send(payload)
 
     def receive(self):

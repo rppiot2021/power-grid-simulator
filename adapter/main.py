@@ -1,10 +1,5 @@
-"""
-utils for address translations
-"""
-import os
 import sys
-import time
-
+import os
 sys.path.insert(0, os.getcwd() + '/../')
 sys.path.insert(0, os.getcwd() + '/../pg')
 
@@ -15,6 +10,16 @@ from abc import ABC, abstractmethod
 from pg.ws_client import WSClient
 from pg.tcp_client2 import TCPClient
 from pg.TCPBuffer import MessageType
+from pg.server import Server
+from pg.ws_server import WSServer
+import websockets
+
+"""
+utils for address translations
+"""
+import signal
+
+
 
 
 # todo later
@@ -199,11 +204,10 @@ class TCPProtocol(Strategy):
         self.client.close_connection()
 
 
-from pg.server import Server
+from pg.client import Client
 
-
-class Adapter(Server):
-
+# todo this client should be in runtime changable
+class Adapter(WSClient):
     """
     notify_small
         if True; return everything when get_curr_data is passed without
@@ -226,16 +230,23 @@ class Adapter(Server):
 
     """
 
-    def __init__(self, host_name, port, state_or_data=True, notify_small=False):
+    def __init__(
+        self,
+        host_name,
+        port,
+        state_or_data=True,
+        notify_small=False,
+        server_type=WSServer):
+
         super().__init__(host_name, port)
 
+        # todo add option to change, not sure if needed
         self.protocol = IEC104Protocol()
         self.data = {}
-
         self.notify_small = notify_small
-
         self.is_init_called = False
-        self.state_or_data = state_or_data
+        self._state_or_data = state_or_data
+        self.server_type = server_type
 
     async def _run(self):
         """
@@ -243,6 +254,10 @@ class Adapter(Server):
 
         :return:
         """
+
+        if not self._state_or_data:
+            raise Exception("this method can not be called in this mode,"
+                            "switch on @state_or_data flag")
 
         t = await self.protocol.get_init_data()
         # self.data = dict(self.data, **{var_name: e.payload.data})
@@ -271,6 +286,12 @@ class Adapter(Server):
         :return:
         """
 
+        if not self._state_or_data:
+            raise Exception("this method can not be called in this mode,"
+                            "switch on @state_or_data flag")
+
+        await self.send(str(self.data))
+
         return self.data
 
     async def get_init_data(self):
@@ -280,6 +301,7 @@ class Adapter(Server):
         :return:
         """
 
+        # todo check if whole system state can be retrieved with interrogate
         if self.is_init_called:
             raise Exception("init already called")
         self.is_init_called = True
@@ -287,7 +309,10 @@ class Adapter(Server):
         t = await self.protocol.get_init_data()
         print(len(t))
         self.data.update(t)
-        return await self.protocol.get_init_data()
+
+        await self.send(str(t))
+
+        return t
 
     async def get_curr_data(self):
         """
@@ -297,6 +322,9 @@ class Adapter(Server):
         :return:
         """
 
+        if self._state_or_data:
+            raise Exception("this method can not be called in this mode,"
+                            "switch off @state_or_data flag")
 
         if not self.is_init_called:
             raise Exception("init was not called")
@@ -312,53 +340,73 @@ class Adapter(Server):
 
                         if self.data[k] != v:
                             self.data.update(t)
+                            await self.send(str(t))
                             return t
 
                     else:
                         self.data.update(t)
+                        await self.send(str(t))
                         return t
 
             else:
                 self.data.update(t)
+                await self.send(str(t))
                 return t
 
+    async def update_data(self):
+        """
+        asdu
+        io
+        payload
 
-class AdapterAll(Server):
+        try multiple times to update, add var for control
+        this exist in some other script
+        :return:
+        """
 
-    def __init__(self, host_name, port, _):
-        super().__init__(host_name, port)
+        #         await self.send(t)
+        raise NotImplementedError()
 
-        self.protocol = IEC104Protocol()
-        self.data = {}
+    # todo for this concrete implementation
+    # async def _server_driver(self, websocket, path):
+    #
+    #     async for message in websocket:
+    #         print("received:", message)
+    #         await websocket.send(str("echo: " + str(self.debug_counter) + " "
+    #                                  + str(message)))
+    #         self.debug_counter += 1
+    #         print()
+    #
+    #         raw_data = message.split(";")
+    #
+    #         if raw_data[0] == "get_curr_state":
+    #             print("get curr state")
+    #
+    #         elif raw_data[0] == "get_init_data":
+    #             print("get init data")
+    #
+    #         elif raw_data[0] == "get_curr_data":
+    #             print("get curr data")
+    #
+    #         elif raw_data[0] == "update_data":
+    #             print("update data")
+    #
+    #         else:
+    #             raise NotImplementedError
 
-    async def _run(self):
-        t = await self.protocol.get_init_data()
-        # self.data = dict(self.data, **{var_name: e.payload.data})
-        # self.data = dict(self.data, t)
-        self.data.update(t)
 
-        print(self.data)
-
-        while True:
-            t = await self.protocol.get_curr_data()
-
-            old = {k: v for k, v in self.data.items()}
-
-            self.data.update(t)
-
-            diff = set(old.items()) ^ set(self.data.items())
-            print("diff", diff)
-
-            # print(self.data)
-
-    async def get_init_data(self):
-
-        t = await self.protocol.get_init_data()
-        print(len(t))
-        return await self.protocol.get_init_data()
-
-    async def get_curr_data(self):
-        return self.data
+# async def init_server():
+#     server = WSServer("localhost", 8765)
+#
+#     signal.signal(signal.SIGINT, signal.SIG_DFL)
+#
+#     print("connect on ws://" + server.host_name + ":" + str(server.port))
+#
+#     asyncio.get_event_loop().run_until_complete(
+#         websockets.serve(server.echo, server.host_name, server.port))
+#     asyncio.get_event_loop().run_forever()
+#
+#     return server
 
 
 async def async_main():
@@ -378,40 +426,54 @@ async def async_main():
     #
     # protocol.close()
 
-    t = AdapterAll("123.4.5.6", 23, False)
-    await t.protocol.connect()
+    # todo .sh that starts this, simulator and designated server
 
-    print(await t.get_init_data())
+    # todo try with localhost inastead of addr
+    adapter = Adapter("127.0.0.1", 8765, state_or_data=False, notify_small=False, server_type=WSServer)
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-    # while True:
-    #     old = {k: v for k, v in t.data.items()}
-    #     print(await t.get_curr_data())
-    #     diff = set(old.items()) ^ set(t.data.items())
-    #     print("diff", diff)
+    adapter.debug_counter = 1
+    # # todo sanitize
+    # print("connect using:", adapter.server_type)
 
+    # print("connect on ws://" + adapter.host_name + ":" + str(adapter.port))
+    # asyncio.get_event_loop().run_until_complete(
+    #     websockets.serve(adapter._server_driver, adapter.host_name, adapter.port))
+    # asyncio.get_event_loop().run_forever()
 
-    await t._run()
-    return
+    await adapter.protocol.connect()
 
-    # protocol = WSProtocol()
-    protocol = IEC104Protocol()
-    await protocol.connect()
-
-    t = await protocol.get_init_data()
-    print("init data")
-    [print(i) for i in t.items()]
-
-    t = await protocol.get_curr_data()
-    print("curr data")
-    [print(i) for i in t.items()]
-
-    await protocol.send_data("closed", 30, 0)
-    print("data sent")
+    print(await adapter.get_init_data())
 
     while True:
-        t = await protocol.get_curr_data()
-        print("curr data")
-        [print(i) for i in t.items()]
+        old = {k: v for k, v in adapter.data.items()}
+        print(await adapter.get_curr_data())
+        diff = set(old.items()) ^ set(adapter.data.items())
+        print("diff", diff)
+
+    # await t._run()
+
+    # return
+
+    # # protocol = WSProtocol()
+    # protocol = IEC104Protocol()
+    # await protocol.connect()
+    #
+    # t = await protocol.get_init_data()
+    # print("init data")
+    # [print(i) for i in t.items()]
+    #
+    # t = await protocol.get_curr_data()
+    # print("curr data")
+    # [print(i) for i in t.items()]
+    #
+    # await protocol.send_data("closed", 30, 0)
+    # print("data sent")
+    #
+    # while True:
+    #     t = await protocol.get_curr_data()
+    #     print("curr data")
+    #     [print(i) for i in t.items()]
 
 
 def main():
