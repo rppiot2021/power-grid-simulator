@@ -4,7 +4,7 @@ backend module implementation for file logging
 
 from os.path import join
 
-from project.backend.log_manager import LogManager
+from log_manager import LogManager
 
 
 class FileManager(LogManager):
@@ -37,6 +37,7 @@ class FileManager(LogManager):
 
 
 if __name__ == '__main__':
-    file = FileManager()
-    file.write("t1", "t2")
-    file._close()
+
+    with FileManager() as file:
+        file.write("t1", "t2")
+

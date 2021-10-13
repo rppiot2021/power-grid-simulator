@@ -8,7 +8,7 @@ import time
 from os.path import join
 from shutil import copy
 
-from project.backend.log_manager import LogManager
+from log_manager import LogManager
 
 
 class DatabaseManager(LogManager):
@@ -137,6 +137,10 @@ class DatabaseManager(LogManager):
 
 if __name__ == '__main__':
     """"""
+
+    with DatabaseManager() as db:
+        db._insert(4, 2, 3)
+
 
     # db = DatabaseManager()
     #
