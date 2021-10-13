@@ -7,6 +7,7 @@ import sqlite3
 import time
 from os.path import join
 from shutil import copy
+from pathlib import Path
 
 from log_manager import LogManager
 
@@ -17,8 +18,14 @@ class DatabaseManager(LogManager):
 
     DEFAULT_ARCHIVE_FOLDER = "db_archive"
 
-    def __init__(self, db_path=DEFAULT_DB_FILENAME, index_time=180,
-                 log_buffer=5000, log_folder=DEFAULT_ARCHIVE_FOLDER, db_folder=DEFAULT_DB_FOLDER):
+    def __init__(
+        self,
+        db_path=DEFAULT_DB_FILENAME,
+        index_time=180,
+        log_buffer=5000,
+        log_folder=DEFAULT_ARCHIVE_FOLDER,
+        db_folder=DEFAULT_DB_FOLDER
+    ):
 
         self.last_index_time = datetime.datetime.fromtimestamp(time.time())
         self.index_time = index_time
@@ -26,9 +33,7 @@ class DatabaseManager(LogManager):
         self.db_path = db_path
         self.log_folder = log_folder
 
-        from pathlib import Path
         Path(log_folder).mkdir(parents=True, exist_ok=True)
-
         Path(db_folder).mkdir(parents=True, exist_ok=True)
 
         super().__init__(True)
@@ -47,6 +52,14 @@ class DatabaseManager(LogManager):
 
         # Save (commit) the changes
         self.connection.commit()
+
+    def db_wrapper(self, payload):
+        self.check_connection()
+
+        payload()
+
+        self.connection.commit()
+
 
     def _close(self):
         """
