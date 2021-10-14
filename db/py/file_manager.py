@@ -47,13 +47,17 @@ class FileManager(LogManager):
 
         self.file = open(self.file_full_path, "a")
 
-        super().__init__(True)
-
     def _close(self):
         self.file.close()
 
     def write(self, *data):
         self.file.write(str(data) + "\n")
+
+        self._cleanup()
+
+    def _cleanup(self):
+        """copy and delete from current file, use 100 inters"""
+        raise NotImplementedError
 
 
 if __name__ == '__main__':
