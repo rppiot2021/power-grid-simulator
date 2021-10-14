@@ -1,0 +1,6 @@
+---
+file_manager:
+   default_file_path: "temp_file.db"
+   default_file_folder: "file_log"
+   default_archive_folder: "file_archive"
+...

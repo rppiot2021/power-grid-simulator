@@ -13,5 +13,8 @@ class LogManager:
     def __enter__(self):
         return self
 
-    def __exit__(self, type, value, traceback):
+    def _close(self):
+        raise NotImplementedError
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
         self._close()
