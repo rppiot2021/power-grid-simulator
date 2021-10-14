@@ -32,7 +32,7 @@ class FileManager(LogManager):
                 if not os.path.exists(prefix):
                     os.makedirs(prefix)
 
-            self.default_file_path = file_path or t["default_file_path"]
+            self.default_file_path = file_path or t["default_file_filename"]
 
             self.default_file_folder = file_folder or join(prefix, t[
                 "default_file_folder"])

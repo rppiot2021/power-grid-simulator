@@ -10,38 +10,120 @@ from shutil import copy
 from pathlib import Path
 
 from log_manager import LogManager
-
+import yaml
+import os
 
 class DatabaseManager(LogManager):
-    DEFAULT_DB_FILENAME = "sql_db.db"
-    DEFAULT_DB_FOLDER = "db_log"
 
-    DEFAULT_ARCHIVE_FOLDER = "db_archive"
+    def __init__(
+            self,
+            file_path=None,
+            file_folder=None,
+            archive_folder=None
+    ):
+        with open("conf.yaml", "r") as stream:
+            t = yaml.safe_load(stream)["file_manager"]
+
+            prefix = t["prefix"]
+
+            if prefix == "None":
+                print("no prefix")
+
+                # for joining
+                prefix = ""
+
+            else:
+                print("prefix exist", prefix)
+
+                if not os.path.exists(prefix):
+                    os.makedirs(prefix)
+
+            self.default_file_path = file_path or t["default_file_filename"]
+
+            self.default_file_folder = file_folder or join(prefix, t[
+                "default_file_folder"])
+            self.default_archive_folder = archive_folder or join(prefix, t[
+                "default_archive_folder"])
+
+        Path(self.default_file_folder).mkdir(parents=True, exist_ok=True)
+        Path(self.default_archive_folder).mkdir(parents=True, exist_ok=True)
+
+        self.file_full_path = join(self.default_file_folder,
+                                   self.default_file_path)
+
+        self.file = open(self.file_full_path, "a")
+
+        super().__init__(True)
+
+    def _close(self):
+        self.file.close()
+
+    def write(self, *data):
+        self.file.write(str(data) + "\n")
+
+    # ///////////////////////////////////////////////////////////////////////
 
     def __init__(
         self,
-        db_path=DEFAULT_DB_FILENAME,
+        db_filename=None,
         index_time=180,
         log_buffer=5000,
-        log_folder=DEFAULT_ARCHIVE_FOLDER,
-        db_folder=DEFAULT_DB_FOLDER
+        archive_folder=None,
+        db_folder=None
     ):
 
         self.last_index_time = datetime.datetime.fromtimestamp(time.time())
         self.index_time = index_time
         self.log_buffer = log_buffer
-        self.db_path = db_path
-        self.log_folder = log_folder
-
-        Path(log_folder).mkdir(parents=True, exist_ok=True)
-        Path(db_folder).mkdir(parents=True, exist_ok=True)
-
         super().__init__(True)
 
-        full_path = join(db_folder, db_path)
+
+        with open("conf.yaml", "r") as stream:
+            t = yaml.safe_load(stream)["database_manager"]
+
+            prefix = t["prefix"]
+
+            if prefix == "None":
+                print("no prefix")
+
+                # for joining
+                prefix = ""
+
+            else:
+                print("prefix exist", prefix)
+
+                if not os.path.exists(prefix):
+                    os.makedirs(prefix)
+
+            self.default_db_path = db_filename or t["default_database_filename"]
+
+            self.default_db_folder = db_folder or join(prefix, t[
+                "default_database_folder"])
+            self.default_archive_folder = archive_folder or join(prefix, t[
+                "default_archive_folder"])
+
+        Path(self.default_db_folder).mkdir(parents=True, exist_ok=True)
+        Path(self.default_archive_folder).mkdir(parents=True, exist_ok=True)
+
+        self.file_full_path = join(self.default_db_folder,
+                                   self.default_db_path)
+
+        # self.db_path = db_path
+        # self.log_folder = log_folder
+
+        # Path(log_folder).mkdir(parents=True, exist_ok=True)
+        # Path(db_folder).mkdir(parents=True, exist_ok=True)
+
+        print(f"{db_folder=}")
+        print(f"{db_filename=}")
+
+        # full_path = join(self.default_db_folder, self.d
+        # )
+        full_path = self.file_full_path
         self.db_full_path = full_path
 
         self.connection = sqlite3.connect(full_path)
+
         self.cursor = self.connection.cursor()
 
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS t
