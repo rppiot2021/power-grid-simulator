@@ -1,3 +1,7 @@
+from shutil import copy
+from datetime import datetime
+import time
+
 import yaml
 import os
 from pathlib import Path
@@ -29,7 +33,7 @@ class LogManager:
         # if prefix == anything else -> use that
 
         with open("conf.yaml", "r") as stream:
-            # t = yaml.safe_load(stream)["database_manager"]
+
             t = yaml.safe_load(stream)[filename]
 
             prefix = prefix or t["prefix"]
@@ -46,6 +50,8 @@ class LogManager:
                 if not os.path.exists(prefix):
                     os.makedirs(prefix)
 
+            self.prefix = prefix
+
             nme = filename.split("_")[0]
 
             self.default_base_filename = base_filename or t[
@@ -59,11 +65,26 @@ class LogManager:
         Path(self.default_base_folder).mkdir(parents=True, exist_ok=True)
         Path(self.default_archive_folder).mkdir(parents=True, exist_ok=True)
 
-        self.db_full_path = join(self.default_base_folder,
+        self.base_full_path = join(self.default_base_folder,
                                  self.default_base_filename)
 
-    def __str__(self):
-        return self.is_opened
+    def _create_archive(self, num_of_rows):
+        if num_of_rows >= self.log_buffer:
+
+            print("archiving")
+
+            current_time = str(
+                datetime.fromtimestamp(time.time())).replace(" ", "_")
+            full_path = join(self.default_archive_folder, current_time + ".db")
+            open(full_path, "w+")
+            copy(self.base_full_path, full_path)
+
+            return True
+
+        return False
+
+    # def __str__(self):
+    #     return self.is_opened
 
     def __enter__(self):
         return self

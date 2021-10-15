@@ -20,7 +20,7 @@ class DatabaseManager(LogManager):
     def __init__(
         self,
         index_time=180,
-        log_buffer=5000,
+        log_buffer=15,
         prefix=None,
         db_filename=None,
         archive_folder=None,
@@ -42,7 +42,7 @@ class DatabaseManager(LogManager):
 
         super().__init__("database_manager", prefix, db_folder, db_filename, archive_folder)
 
-        self.connection = sqlite3.connect(self.db_full_path)
+        self.connection = sqlite3.connect(self.base_full_path)
 
         self.cursor = self.connection.cursor()
 
@@ -58,7 +58,6 @@ class DatabaseManager(LogManager):
     def _close(self):
         """
         closes connection with database
-
         """
 
         self.connection.close()
@@ -132,12 +131,9 @@ class DatabaseManager(LogManager):
         num_of_rows = self.cursor.execute("SELECT COUNT(*) FROM t;").fetchone()[0]
         print(num_of_rows)
 
-        if num_of_rows >= self.log_buffer:
-            current_time = str(datetime.datetime.fromtimestamp(time.time())).replace(" ", "_")
-            full_path = join(self.default_archive_folder, current_time + ".db")
-            open(full_path, "w+")
-            copy(self.db_full_path, full_path)
+        is_created = self._create_archive(num_of_rows)
 
+        if is_created:
             self.cursor.execute("DELETE FROM t")
 
         self.connection.commit()
@@ -146,8 +142,14 @@ class DatabaseManager(LogManager):
 if __name__ == '__main__':
 
     with DatabaseManager(index_time=5) as db:
+        from random import random, seed
+        seed(1)
 
         while True:
             time.sleep(1)
-            db.insert(4, 2, 3)
-            db.custom_insert("t", 4, 5, 2, 3)
+            print(random(), random(), random())
+            try:
+                db.insert(random(), random(), random())
+                db.custom_insert("t", random(), random(), random(), random())
+            except sqlite3.IntegrityError:
+                pass
