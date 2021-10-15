@@ -10,40 +10,44 @@ from log_manager import LogManager
 class FileManager(LogManager):
 
     def __init__(
-            self,
-            file_path=None,
-            file_folder=None,
-            archive_folder=None
+        self,
+        prefix=None,
+        file_filename=None,
+        file_folder=None,
+        archive_folder=None
     ):
-        with open("conf.yaml", "r") as stream:
-            t = yaml.safe_load(stream)["file_manager"]
 
-            prefix = t["prefix"]
+        super().__init__("file_manager", prefix, file_folder, file_filename, archive_folder)
 
-            if prefix == "None":
-                print("no prefix")
-
-                # for joining
-                prefix = ""
-
-            else:
-                print("prefix exist", prefix)
-
-                if not os.path.exists(prefix):
-                    os.makedirs(prefix)
-
-            self.default_file_path = file_path or t["default_file_filename"]
-
-            self.default_file_folder = file_folder or join(prefix, t[
-                "default_file_folder"])
-            self.default_archive_folder = archive_folder or join(prefix, t[
-                "default_archive_folder"])
-
-        Path(self.default_file_folder).mkdir(parents=True, exist_ok=True)
-        Path(self.default_archive_folder).mkdir(parents=True, exist_ok=True)
-
-        self.file_full_path = join(self.default_file_folder,
-                                   self.default_file_path)
+        # with open("conf.yaml", "r") as stream:
+        #     t = yaml.safe_load(stream)["file_manager"]
+        #
+        #     prefix = t["prefix"]
+        #
+        #     if prefix == "None":
+        #         print("no prefix")
+        #
+        #         # for joining
+        #         prefix = ""
+        #
+        #     else:
+        #         print("prefix exist", prefix)
+        #
+        #         if not os.path.exists(prefix):
+        #             os.makedirs(prefix)
+        #
+        #     self.default_file_path = file_filename or t["default_file_filename"]
+        #
+        #     self.default_file_folder = file_folder or join(prefix, t[
+        #         "default_file_folder"])
+        #     self.default_archive_folder = archive_folder or join(prefix, t[
+        #         "default_archive_folder"])
+        #
+        # Path(self.default_file_folder).mkdir(parents=True, exist_ok=True)
+        # Path(self.default_archive_folder).mkdir(parents=True, exist_ok=True)
+        #
+        self.file_full_path = join(self.default_base_folder,
+                                   self.default_base_filename)
 
         self.file = open(self.file_full_path, "a")
 

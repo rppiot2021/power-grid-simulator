@@ -19,45 +19,28 @@ class DatabaseManager(LogManager):
 
     def __init__(
         self,
-        db_filename=None,
         index_time=180,
         log_buffer=5000,
+        prefix=None,
+        db_filename=None,
         archive_folder=None,
         db_folder=None
     ):
+        """
+
+        :param index_time: time between reindexing
+        :param log_buffer: archive current state of database after this
+        number of logs has exceeded
+        :param db_filename:
+        :param archive_folder:
+        :param db_folder:
+        """
 
         self.last_index_time = datetime.datetime.fromtimestamp(time.time())
         self.index_time = index_time
         self.log_buffer = log_buffer
 
-        with open("conf.yaml", "r") as stream:
-            t = yaml.safe_load(stream)["database_manager"]
-
-            prefix = t["prefix"]
-
-            if prefix == "None":
-                print("no prefix")
-
-                # for joining
-                prefix = ""
-
-            else:
-                print("prefix exist", prefix)
-
-                if not os.path.exists(prefix):
-                    os.makedirs(prefix)
-
-            self.default_db_path = db_filename or t["default_database_filename"]
-
-            self.default_db_folder = db_folder or join(prefix, t[
-                "default_database_folder"])
-            self.default_archive_folder = archive_folder or join(prefix, t[
-                "default_archive_folder"])
-
-        Path(self.default_db_folder).mkdir(parents=True, exist_ok=True)
-        Path(self.default_archive_folder).mkdir(parents=True, exist_ok=True)
-
-        self.db_full_path = join(self.default_db_folder, self.default_db_path)
+        super().__init__("database_manager", prefix, db_folder, db_filename, archive_folder)
 
         self.connection = sqlite3.connect(self.db_full_path)
 
@@ -98,10 +81,6 @@ class DatabaseManager(LogManager):
             f"(\"{current_time}\", {asdu}, {io}, {value})"
         )
 
-        print(          f"INSERT INTO t VALUES "
-            f"(\"{current_time}\", {asdu}, {io}, {value})"
-  )
-
         self.connection.commit()
 
     def custom_insert(self, table, *params):
@@ -117,9 +96,6 @@ class DatabaseManager(LogManager):
 
         # Insert a row of data
         self.cursor.execute("INSERT INTO " + table + " VALUES " + str(params[0]))
-
-
-
 
         self.connection.commit()
 
