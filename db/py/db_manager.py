@@ -3,6 +3,7 @@ backend module implementation for database logging
 """
 
 import datetime
+import random
 import sqlite3
 import time
 from os.path import join
@@ -97,6 +98,10 @@ class DatabaseManager(LogManager):
             f"(\"{current_time}\", {asdu}, {io}, {value})"
         )
 
+        print(          f"INSERT INTO t VALUES "
+            f"(\"{current_time}\", {asdu}, {io}, {value})"
+  )
+
         self.connection.commit()
 
     def custom_insert(self, table, *params):
@@ -111,7 +116,10 @@ class DatabaseManager(LogManager):
         """
 
         # Insert a row of data
-        self.cursor.execute("INSERT INTO " + table + " VALUES " + str(params))
+        self.cursor.execute("INSERT INTO " + table + " VALUES " + str(params[0]))
+
+
+
 
         self.connection.commit()
 
@@ -165,5 +173,5 @@ if __name__ == '__main__':
 
         while True:
             time.sleep(1)
-            # db.insert(4, 2, 3)
-            db.custom_insert("t", 3, 5, 2, 3)
+            db.insert(4, 2, 3)
+            db.custom_insert("t", 4, 5, 2, 3)
