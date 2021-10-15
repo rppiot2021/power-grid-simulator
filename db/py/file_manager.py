@@ -1,9 +1,5 @@
-import os
 import time
 from os.path import join
-from pathlib import Path
-
-import yaml
 
 from log_manager import LogManager
 
@@ -11,17 +7,17 @@ from log_manager import LogManager
 class FileManager(LogManager):
 
     def __init__(
-        self,
-        log_buffer=15,
-        prefix=None,
-        file_filename=None,
-        file_folder=None,
-        archive_folder=None
+            self,
+            log_buffer=15,
+            prefix=None,
+            file_filename=None,
+            file_folder=None,
+            archive_folder=None
     ):
-
         self.log_buffer = log_buffer
 
-        super().__init__("file_manager", prefix, file_folder, file_filename, archive_folder)
+        super().__init__("file_manager", prefix, file_folder, file_filename,
+                         archive_folder)
 
         self.file_full_path = join(self.default_base_folder,
                                    self.default_base_filename)

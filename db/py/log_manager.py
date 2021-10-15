@@ -1,22 +1,22 @@
-from shutil import copy
-from datetime import datetime
+import os
 import time
+from datetime import datetime
+from os.path import join
+from pathlib import Path
+from shutil import copy
 
 import yaml
-import os
-from pathlib import Path
-from os.path import join
 
 
 class LogManager:
 
     def __init__(
-        self,
-        filename=None,
-        prefix=None,
-        base_folder=None,
-        base_filename=None,
-        archive_folder=None
+            self,
+            filename=None,
+            prefix=None,
+            base_folder=None,
+            base_filename=None,
+            archive_folder=None
     ):
 
         # if prefix == None use default
@@ -57,11 +57,10 @@ class LogManager:
         Path(self.default_archive_folder).mkdir(parents=True, exist_ok=True)
 
         self.base_full_path = join(self.default_base_folder,
-                                 self.default_base_filename)
+                                   self.default_base_filename)
 
     def _create_archive(self, num_of_rows):
         if num_of_rows >= self.log_buffer:
-
             print("archiving")
 
             current_time = str(

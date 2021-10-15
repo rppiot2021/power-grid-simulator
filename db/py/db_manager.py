@@ -3,28 +3,22 @@ backend module implementation for database logging
 """
 
 import datetime
-import random
 import sqlite3
 import time
-from os.path import join
-from shutil import copy
-from pathlib import Path
 
 from log_manager import LogManager
-import yaml
-import os
 
 
 class DatabaseManager(LogManager):
 
     def __init__(
-        self,
-        index_time=180,
-        log_buffer=15,
-        prefix=None,
-        db_filename=None,
-        archive_folder=None,
-        db_folder=None
+            self,
+            index_time=180,
+            log_buffer=15,
+            prefix=None,
+            db_filename=None,
+            archive_folder=None,
+            db_folder=None
     ):
         """
 
@@ -40,7 +34,8 @@ class DatabaseManager(LogManager):
         self.index_time = index_time
         self.log_buffer = log_buffer
 
-        super().__init__("database_manager", prefix, db_folder, db_filename, archive_folder)
+        super().__init__("database_manager", prefix, db_folder, db_filename,
+                         archive_folder)
 
         self.connection = sqlite3.connect(self.base_full_path)
 
@@ -94,7 +89,8 @@ class DatabaseManager(LogManager):
         """
 
         # Insert a row of data
-        self.cursor.execute("INSERT INTO " + table + " VALUES " + str(params[0]))
+        self.cursor.execute(
+            "INSERT INTO " + table + " VALUES " + str(params[0]))
 
         self.connection.commit()
 
@@ -105,7 +101,8 @@ class DatabaseManager(LogManager):
 
         current_time = datetime.datetime.fromtimestamp(time.time())
 
-        if current_time - datetime.timedelta(seconds=self.index_time) > self.last_index_time:
+        if current_time - datetime.timedelta(
+                seconds=self.index_time) > self.last_index_time:
             self._create_index()
             print("reindexing")
             self.last_index_time = current_time
@@ -118,7 +115,8 @@ class DatabaseManager(LogManager):
 
         self.cursor.execute('''DROP INDEX IF EXISTS t_index''')
 
-        self.cursor.execute('''CREATE UNIQUE INDEX t_index ON t (asdu, io, date)''')
+        self.cursor.execute(
+            '''CREATE UNIQUE INDEX t_index ON t (asdu, io, date)''')
 
         # Save (commit) the changes
         self.connection.commit()
@@ -128,8 +126,12 @@ class DatabaseManager(LogManager):
         create backup of current state of db and empty current db
         """
 
-        num_of_rows = self.cursor.execute("SELECT COUNT(*) FROM t;").fetchone()[0]
+        num_of_rows = self.cursor.execute("SELECT COUNT(*) FROM t;").fetchone()[
+            0]
         print(num_of_rows)
+
+        if num_of_rows >= self.log_buffer:
+            self._create_index()
 
         is_created = self._create_archive(num_of_rows)
 
@@ -142,14 +144,16 @@ class DatabaseManager(LogManager):
 if __name__ == '__main__':
 
     with DatabaseManager(index_time=5) as db:
-        from random import random, seed
+        from random import seed
+
         seed(1)
 
+        i = 0
         while True:
             time.sleep(1)
-            print(random(), random(), random())
-            try:
-                db.insert(random(), random(), random())
-                db.custom_insert("t", random(), random(), random(), random())
-            except sqlite3.IntegrityError:
-                pass
+            db.insert(i, i, i)
+            i += 1
+            print(i)
+            db.custom_insert("t", i, i, i, i)
+            i += 1
+            print(i)

@@ -7,7 +7,6 @@ import time
 
 from hat import aio
 from hat.event.server import common
-
 from project.backend.db_manager import DatabaseManager
 from project.backend.file_manager import FileManager
 
