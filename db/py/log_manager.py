@@ -10,15 +10,6 @@ from os.path import join
 
 class LogManager:
 
-    # def __init__(self, is_opened):
-    #     self.is_opened = is_opened
-    #
-    # def check_connection(self):
-    #     if not self.is_opened:
-    #         raise PermissionError("connection closed or not established")
-
-    # def load_paths(self, prefix, base_folder, base_filename, archive_folder):
-
     def __init__(
         self,
         filename=None,
@@ -60,7 +51,7 @@ class LogManager:
             self.default_base_folder = base_folder or join(prefix, t[
                 f"default_{nme}_folder"])
             self.default_archive_folder = archive_folder or join(prefix, t[
-                f"default_{nme}_folder"])
+                f"default_archive_folder"])
 
         Path(self.default_base_folder).mkdir(parents=True, exist_ok=True)
         Path(self.default_archive_folder).mkdir(parents=True, exist_ok=True)
@@ -82,9 +73,6 @@ class LogManager:
             return True
 
         return False
-
-    # def __str__(self):
-    #     return self.is_opened
 
     def __enter__(self):
         return self
