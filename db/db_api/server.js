@@ -2,32 +2,40 @@ var express = require("express")
 var app = express()
 var db = require("./database.js")
 var md5 = require("md5")
-
 var bodyParser = require("body-parser");
+
+var utils = require("./util.js")
+
+utils.getFromConfig()
+utils.ConfigManager.foo();
+
 app.use(bodyParser.urlencoded({
     extended: false
 }));
+
 app.use(bodyParser.json());
 
-var HTTP_PORT = 8000
 
-function access_control_origin(req, res, next) {
+
+function accessControlOrigin(req, res, next) {
     console.log("access control allow origin handler middleware");
     res.header('Access-Control-Allow-Origin', "*");
     next();
 }
 
-function acess_control_headers(req, res, next) {
+function accessControlHeaders(req, res, next) {
     console.log("access control allow headers handler middleware");
     res.header('Access-Control-Allow-Headers', "*");
     next();
 }
 
-var access_control_mw = [access_control_origin, acess_control_headers]
+var accessControlMW = [accessControlOrigin, accessControlHeaders]
+
+var httpport = utils.ConfigManager.HTTPPort;
 
 // Start server
-app.listen(HTTP_PORT, () => {
-    console.log("Server running on port %PORT%".replace("%PORT%", HTTP_PORT))
+app.listen(httpport, () => {
+    console.log("Server running on port %PORT%".replace("%PORT%", httpport))
 });
 
 let sql_query;
@@ -47,11 +55,11 @@ function sql_mng(req, res) {
         res.json({
             "message": "success",
             "data": row
-        })
+        });
     });
 }
 
-app.get("/:asdu/:io/:limit", access_control_mw, (req, res, next) => {
+app.get("/:asdu/:io/:limit", accessControlMW, (req, res, next) => {
 
     sql_query = "SELECT * FROM t where asdu = ? and io = ? limit ?";
 
@@ -64,6 +72,6 @@ app.get("/:asdu/:io/:limit", access_control_mw, (req, res, next) => {
 app.get("/", (req, res, next) => {
     res.json({
         "message": "Ok",
-        "elaborate": "server is runing, make api call"
-    })
+        "elaborate": "server is running, make api call"
+    });
 });

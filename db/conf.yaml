@@ -12,6 +12,9 @@ file_manager:
   default_archive_folder: file_archive
 
 database_manager:
+  # used for db_api and python loaders
+  port: 8000
+
   # prefixes all the following files and folders
   # put @None if not used
   prefix: "../db_log_folder/tmp/"
