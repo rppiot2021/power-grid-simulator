@@ -15,7 +15,7 @@ database_manager:
   # prefixes all the following files and folders
   # put @None if not used
   prefix: "../db_log_folder/tmp/"
-  #   prefix: None
+#  prefix: None
 
   #   db: prefix + default_database_folder + default_database_filename
   #   bu: prefix + default_archive_folder + db_bu_key
