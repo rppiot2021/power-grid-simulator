@@ -67,8 +67,12 @@ async def async_main():
     adapter.debug_counter = 1
 
     await adapter.connect()
+    print(await adapter.tcp_get_curr_data())
+    await adapter.close()
 
-    print(await adapter.get_init_data())
+    await adapter.connect()
+    print(await adapter.tcp_get_curr_data())
+    await adapter.close()
 
     # todo sanitize
     # print("connect using:", adapter.server_type)

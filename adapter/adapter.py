@@ -1,3 +1,5 @@
+from pg.TCPBuffer import MessageType
+
 
 def get_adapter(
         client,
@@ -5,7 +7,7 @@ def get_adapter(
         port,
         state_or_data=False,
         notify_small=False
-    ):
+):
     class Adapter(client):
         """
         notify_small
@@ -30,11 +32,11 @@ def get_adapter(
         """
 
         def __init__(
-            self,
-            host_name,
-            port,
-            state_or_data=True,
-            notify_small=False,
+                self,
+                host_name,
+                port,
+                state_or_data=True,
+                notify_small=False,
 
         ):
 
@@ -47,8 +49,6 @@ def get_adapter(
             self.is_init_called = False
             self._state_or_data = state_or_data
             # self.server_type = server_type
-
-
 
         async def _run(self):
             """
@@ -96,6 +96,19 @@ def get_adapter(
 
             return self.data
 
+        async def tcp_get_curr_data(self):
+            # todo remove it and implement it in existing functions
+            try:
+                # return self.client.buffer.read_next()
+                return self.receive()
+            except IndexError:
+                self.close()
+
+        async def tcp_send_data(self, value, asdu=0, io=0,
+                                data_type=MessageType.CONTENT):
+            # todo remove it and implement it in existing functions
+            self.send(value, data_type)
+
         async def get_init_data(self):
             """
             return only initial data of system
@@ -109,6 +122,7 @@ def get_adapter(
             self.is_init_called = True
 
             # t = await self.protocol.get_init_data()
+            # todo define 'init data' in TCP
             t = await self.get_curr_data()
 
             print(len(t))
@@ -136,10 +150,9 @@ def get_adapter(
             while True:
 
                 # t = await self.protocol.get_curr_data()
-                t = await self.receive()
+                t = self.receive()
 
                 if not self.notify_small:
-
                     for k, v in t.items():
                         if k in self.data:
 
