@@ -13,14 +13,11 @@ from pg.TCPBuffer import MessageType
 from pg.server import Server
 from pg.ws_server import WSServer
 import websockets
+import signal
 
 """
 utils for address translations
 """
-import signal
-
-
-
 
 # todo later
 # class Address:
