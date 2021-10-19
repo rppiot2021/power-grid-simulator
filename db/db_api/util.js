@@ -7,6 +7,11 @@ const path = require('path');
 //    console.log("ff");
 //
 //}
+//
+//exports.getFromConfig = function() {
+//  console.log("aaa")
+//
+//}
 
 class ConfigManager {
 
@@ -22,7 +27,8 @@ class ConfigManager {
 
   get dbPath() {
 
-    let fullPath = this.dbConfig["prefix"] === "None" ? "" : this.dbConfig["prefix"];
+    let fullPath = this.dbConfig["prefix"] === "None" ?
+      "" : this.dbConfig["prefix"];
 
     fullPath += path.join(
       this.dbConfig["default_database_folder"],
@@ -40,8 +46,3 @@ class ConfigManager {
 }
 
 exports.ConfigManager = new ConfigManager();
-
-exports.getFromConfig = function() {
-  console.log("aaa")
-
-}

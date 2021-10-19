@@ -67,6 +67,7 @@ app.get("/:asdu/:io/:limit", accessControlMW, (req, res, next) => {
   ];
 
   next();
+
 }, sql_mng);
 
 // Root path
