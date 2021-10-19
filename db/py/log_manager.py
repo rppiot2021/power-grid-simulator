@@ -23,7 +23,7 @@ class LogManager:
         # if prefix == "" -> no preifx
         # if prefix == anything else -> use that
 
-        with open("conf.yaml", "r") as stream:
+        with open("../conf.yaml", "r") as stream:
 
             t = yaml.safe_load(stream)[filename]
 
