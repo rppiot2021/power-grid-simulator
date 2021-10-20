@@ -32,12 +32,11 @@ def get_adapter(
         """
 
         def __init__(
-                self,
-                host_name,
-                port,
-                state_or_data=True,
-                notify_small=False,
-
+            self,
+            host_name,
+            port,
+            state_or_data=True,
+            notify_small=False,
         ):
 
             super().__init__(host_name, port)
@@ -49,6 +48,29 @@ def get_adapter(
             self.is_init_called = False
             self._state_or_data = state_or_data
             # self.server_type = server_type
+
+        async def get(self):
+            raise NotImplementedError
+
+        async def notify_wait_for_confirmation(self, payload):
+            raise NotImplementedError
+
+        async def send(self, payload):
+            raise NotImplementedError
+
+        async def forward(
+            self,
+            source_protocol_type,
+            source_domain_name,
+            source_port,
+            destination_protocol_type,
+            destination_domain_name,
+            destination_port
+        ):
+            data = self.get()
+            if self.notify_wait_for_confirmation(data):
+                self.send(data)
+
 
         async def _run(self):
             """
@@ -80,7 +102,7 @@ def get_adapter(
 
                 # print(self.data)
 
-        async def get_curr_state(self):
+        async def get_curr_all_data(self):
             """
             return current state of system
             include all values that were ever received

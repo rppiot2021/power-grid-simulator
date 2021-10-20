@@ -1,8 +1,10 @@
 import sys
 import os
 
-sys.path.insert(0, os.getcwd() + '/../')
+sys.path.insert(0, os.getcwd() + '/')
 sys.path.insert(0, os.getcwd() + '/../pg')
+sys.path.insert(0, os.getcwd() + '/../adapter')
+
 from hat.aio import run_asyncio
 from pg.tcp_client2 import TCPClient
 import signal
