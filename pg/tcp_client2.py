@@ -1,5 +1,6 @@
 import selectors
 import socket
+from abc import ABC
 
 from TCPBuffer import Buffer, MessageType
 from TCPConnection import TCPConnection
@@ -9,10 +10,18 @@ from client import Client
 class TCPClient(Client):
 
     def __init__(self, domain_name, host):
+        print("TCPClient init")
         super(TCPClient, self).__init__(domain_name, host)
 
         self.buffer = Buffer()
         self.rec_list = []
+
+    async def connect(self):
+        self.start_connection()
+
+    async def close(self):
+        self.close_connection()
+        # self.close()
 
     def send(self, payload, data_type=MessageType.CONTENT):
         self.tcp.write(payload, data_type=data_type)
@@ -29,14 +38,15 @@ class TCPClient(Client):
         finally:
             self.sel.close()
 
-        return self.buffer.return_history()
+        if len(self.buffer.return_history()) == 0:
+            return {}
+        return self.buffer.return_history().pop()
 
     def create_request(self, msg_payload):
         return self.buffer.create_response()
 
     def close_connection(self):
         self.tcp.remote_close()
-        # self.close_connection()
 
     def connect_socket(self, address):
         """Define new Socket object, connect to it with address and port"""
