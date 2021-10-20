@@ -18,7 +18,7 @@ class WSClient(Client):
     async def send(self, payload):
         self.connection.send(payload)
 
-    def receive(self):
+    async def receive(self):
         # receive from socket
         return self.connection.recv()
 
@@ -35,12 +35,12 @@ async def async_main():
     # print(client.receive())
     await client.send("3")
     await client.send("4")
-    print(client.receive())
-    print(client.receive())
+    print(await client.receive())
+    print(await client.receive())
     # print(client.receive())
     await client.send("5")
     await client.send("6")
-    print(client.receive())
+    print(await client.receive())
 
     client.connection.close()
 

@@ -3,18 +3,19 @@ import os
 
 sys.path.insert(0, os.getcwd() + '/')
 sys.path.insert(0, os.getcwd() + '/../pg')
+# sys.path.insert(0, os.getcwd() + '/../adapter')
 sys.path.insert(0, os.getcwd() + '/../adapter')
 
 from hat.aio import run_asyncio
 from pg.tcp_client2 import TCPClient
 import signal
-from adapter import get_adapter
-
+from adapter import Adapter
+from pg.ws_client import WSClient
 # from pg.server import Server
 # from pg.ws_server import WSServer
 # from pg.client import Client
 # import websockets
-
+from pg.ws_client import Client
 
 """
 utils for address translations
@@ -58,23 +59,43 @@ async def async_main():
 
     # todo try with localhost instead of address
 
-    adapter = get_adapter(TCPClient,
-                          "127.0.0.1",
-                          4567,
-                          state_or_data=False,
-                          notify_small=False)
+    adapter = Adapter(
+        state_or_data=False,
+        notify_small=False
+    )
 
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     adapter.debug_counter = 1
 
-    await adapter.connect()
-    print(await adapter.tcp_get_curr_data())
-    await adapter.close()
+    while True:
+        # todo use config file
+        await adapter.forward(
+            # source_protocol_type=Client,
+            source_protocol_type=WSClient,
+            source_domain_name="127.0.0.1",
+            source_port=8765,
+            keep_alive_source=True,
+            destination_protocol_type=None,
+            destination_domain_name=None,
+            destination_port=None,
+            keep_alive_destination=True,
+            forward_without_confirmation=True
+        )
 
-    await adapter.connect()
-    print(await adapter.tcp_get_curr_data())
-    await adapter.close()
+        # def __init__(self, domain_name="127.0.0.1", port=8765):
+
+        break
+
+    # await adapter.connect()
+    # print(await adapter.tcp_get_curr_data())
+    # await adapter.close()
+    #
+    # await adapter.connect()
+    # print(await adapter.tcp_get_curr_data())
+    # await adapter.close()
+
+
 
     # todo sanitize
     # print("connect using:", adapter.server_type)
