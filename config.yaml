@@ -1,0 +1,35 @@
+---
+# protocols
+
+protocol_WebSocket:
+  class_name: WSClient
+  domain_name: "127.0.0.1"
+  port: 8765
+
+file_manager:
+  # prefixes all the following files and folders
+  # put @None if not used
+  prefix: "../fl_log_folder/tmp2/"
+  #   prefix: None
+
+  #   db: prefix + default_database_folder + default_database_filename
+  #   bu: prefix + default_archive_folder + db_bu_key
+  default_file_filename: temp_file.db
+  default_file_folder: file_log
+  default_archive_folder: file_archive
+
+database_manager:
+  # used for db_api and python loaders
+  port: 8000
+
+  # prefixes all the following files and folders
+  # put @None if not used
+  prefix: "../db_log_folder/tmp/"
+#  prefix: None
+
+  #   db: prefix + default_database_folder + default_database_filename
+  #   bu: prefix + default_archive_folder + db_bu_key
+  default_database_filename: sql_db.db
+  default_database_folder: db_log
+  default_archive_folder: db_archive
+...

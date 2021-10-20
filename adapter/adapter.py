@@ -45,12 +45,14 @@ class Adapter:
 
     async def get(self, protocol_type, domain_name, port):
         # todo check if need close for protocol type in if statement
+
         if not self.source_client or self.source_client != protocol_type(domain_name, port):
             self.source_client = protocol_type(domain_name, port)
 
         # todo remove this line, used for testing
-        data = await self.source_client.send("5")
-        data = self.source_client.receive()
+        await self.source_client.send("5")
+
+        data = await self.source_client.receive()
 
         print("received", data)
 

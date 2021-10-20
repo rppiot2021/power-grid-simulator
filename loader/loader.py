@@ -17,6 +17,8 @@ from pg.ws_client import WSClient
 # import websockets
 from pg.ws_client import Client
 
+from yaml_parser import get_config
+
 """
 utils for address translations
 """
@@ -66,15 +68,35 @@ async def async_main():
 
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
+    config = get_config()
+
     adapter.debug_counter = 1
 
     while True:
         # todo use config file
+
+        ws_config = config["protocol_WebSocket"]
+
+        print(ws_config)
+
+        from ast import literal_eval
+
+        # [print(literal_eval(i)) for i in ws_config]
+
+        identifier = getattr(sys.modules[__name__], "WSClient")
+
+        print("id", identifier)
+
         await adapter.forward(
             # source_protocol_type=Client,
-            source_protocol_type=WSClient,
-            source_domain_name="127.0.0.1",
-            source_port=8765,
+            # source_protocol_type=WSClient,
+            # source_domain_name="127.0.0.1",
+            # source_port=8765,
+
+            source_protocol_type=getattr(sys.modules[__name__], ws_config["class_name"]),
+            source_domain_name=ws_config["domain_name"],
+            source_port=int(ws_config["port"]),
+
             keep_alive_source=True,
             destination_protocol_type=None,
             destination_domain_name=None,
@@ -116,7 +138,6 @@ async def async_main():
     # await t._run()
 
     # return
-
 
 def main():
     run_asyncio(async_main())
