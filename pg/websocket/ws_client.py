@@ -1,7 +1,7 @@
 from hat.aio import run_asyncio
 from websocket import create_connection
 
-from client import Client
+from pg.util.client import Client
 
 
 class WSClient(Client):
@@ -22,14 +22,15 @@ class WSClient(Client):
         # receive from socket
         return self.connection.recv()
 
+
 async def async_main():
     client = WSClient()
 
-    await    client.send("1")
+    await client.send("1")
 
-    print(client.receive())
-    await    client.send("2")
-    print(client.receive())
+    print(await client.receive())
+    await client.send("2")
+    print(await client.receive())
     # print(client.receive())
     # print(client.receive())
     # print(client.receive())
@@ -47,7 +48,6 @@ async def async_main():
 
 def main():
     run_asyncio(async_main())
-
 
 
 if __name__ == '__main__':

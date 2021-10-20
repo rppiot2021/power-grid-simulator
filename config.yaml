@@ -2,9 +2,15 @@
 # protocols
 
 protocol_WebSocket:
-  class_name: WSClient
+#  client
+  client_class_name: WSClient
   domain_name: "127.0.0.1"
   port: 8765
+
+protocol_TCP:
+  client_class_name: TCPClient
+  domain_name: "127.0.0.1"
+  port: 4567
 
 file_manager:
   # prefixes all the following files and folders

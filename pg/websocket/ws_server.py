@@ -1,3 +1,9 @@
+import os
+import sys
+
+# sys.path.insert(0, os.getcwd() + '/../pg')
+sys.path.insert(0, os.getcwd() + '/../../')
+
 import asyncio
 import signal
 
@@ -5,7 +11,7 @@ import nest_asyncio
 import websockets
 from hat.aio import run_asyncio
 
-from server import Server
+from pg.util.server import Server
 
 
 class WSServer(Server):
@@ -61,7 +67,6 @@ class WSServer(Server):
 
                 print("msg", message[:10])
                 # raise NotImplementedError
-
 
 
 async def init_server():

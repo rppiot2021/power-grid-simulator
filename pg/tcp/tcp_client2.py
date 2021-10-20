@@ -1,10 +1,9 @@
 import selectors
 import socket
-from abc import ABC
 
 from TCPBuffer import Buffer, MessageType
 from TCPConnection import TCPConnection
-from client import Client
+from pg.util.client import Client
 
 
 class TCPClient(Client):

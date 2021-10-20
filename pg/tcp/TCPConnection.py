@@ -2,7 +2,7 @@ import selectors
 import struct
 import time
 
-from TCPBuffer import BufferType, MessageType
+from pg.tcp.TCPBuffer import BufferType, MessageType
 
 
 class TCPConnection:

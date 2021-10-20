@@ -1,6 +1,4 @@
-from pg.TCPBuffer import MessageType
-from pg.client import Client
-from pg.ws_client import WSClient
+from pg.tcp.TCPBuffer import MessageType
 
 
 class Adapter:

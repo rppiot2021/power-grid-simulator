@@ -4,7 +4,7 @@ import selectors
 import socket
 import struct
 
-from client import Client
+from pg.util.client import Client
 
 
 class Message:

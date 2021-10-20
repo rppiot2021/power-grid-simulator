@@ -5,9 +5,8 @@ sys.path.insert(0, os.getcwd() + '/../pg')
 
 
 from hat.aio import run_asyncio
-from websocket import create_connection
 
-from pg.ws_client import WSClient
+from pg.websocket.ws_client import WSClient
 
 async def async_main():
     client = WSClient()

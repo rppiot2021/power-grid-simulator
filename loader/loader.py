@@ -7,15 +7,12 @@ sys.path.insert(0, os.getcwd() + '/../pg')
 sys.path.insert(0, os.getcwd() + '/../adapter')
 
 from hat.aio import run_asyncio
-from pg.tcp_client2 import TCPClient
 import signal
 from adapter import Adapter
-from pg.ws_client import WSClient
 # from pg.server import Server
 # from pg.ws_server import WSServer
 # from pg.client import Client
 # import websockets
-from pg.ws_client import Client
 
 from yaml_parser import get_config
 
@@ -79,8 +76,6 @@ async def async_main():
 
         print(ws_config)
 
-        from ast import literal_eval
-
         # [print(literal_eval(i)) for i in ws_config]
 
         identifier = getattr(sys.modules[__name__], "WSClient")
@@ -88,16 +83,13 @@ async def async_main():
         print("id", identifier)
 
         await adapter.forward(
-            # source_protocol_type=Client,
-            # source_protocol_type=WSClient,
-            # source_domain_name="127.0.0.1",
-            # source_port=8765,
 
-            source_protocol_type=getattr(sys.modules[__name__], ws_config["class_name"]),
+            source_protocol_type=getattr(sys.modules[__name__], ws_config["client_class_name"]),
             source_domain_name=ws_config["domain_name"],
             source_port=int(ws_config["port"]),
 
             keep_alive_source=True,
+
             destination_protocol_type=None,
             destination_domain_name=None,
             destination_port=None,

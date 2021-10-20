@@ -5,7 +5,7 @@ import socket
 import struct
 import traceback
 
-from server import Server
+from pg.util.server import Server
 
 
 class Message:

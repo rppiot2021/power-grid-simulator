@@ -4,7 +4,7 @@ import time
 
 from TCPBuffer import Buffer
 from TCPConnection import TCPConnection
-from server import Server
+from pg.util.server import Server
 
 
 class TCPServer(Server):

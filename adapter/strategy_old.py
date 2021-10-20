@@ -7,9 +7,9 @@ from hat.drivers import iec104
 
 sys.path.insert(0, os.getcwd() + '/../')
 sys.path.insert(0, os.getcwd() + '/../pg')
-from pg.tcp_client2 import TCPClient
-from pg.ws_client import WSClient
-from pg.TCPBuffer import MessageType
+from pg.tcp.tcp_client2 import TCPClient
+from pg.websocket.ws_client import WSClient
+from pg.tcp.TCPBuffer import MessageType
 
 
 class Strategy(ABC):
