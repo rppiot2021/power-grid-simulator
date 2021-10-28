@@ -1,7 +1,7 @@
 import os
 import sys
 
-# sys.path.insert(0, os.getcwd() + '/../pg')
+# sys.path.insert(0, os.getcwd() + '/../protocols')
 sys.path.insert(0, os.getcwd() + '/../../')
 
 import asyncio
@@ -11,7 +11,7 @@ import nest_asyncio
 import websockets
 from hat.aio import run_asyncio
 
-from pg.util.server import Server
+from protocols.util.server import Server
 
 
 class WSServer(Server):
@@ -29,7 +29,7 @@ class WSServer(Server):
             self.debug_counter += 1
             print()
 
-    # todo extract this parts because this is not minimal example for websocket,
+    # todo extract this parts because this is not minimal example for ws,
     #   this is concrete implementation
     async def driver(self, websocket, path):
 

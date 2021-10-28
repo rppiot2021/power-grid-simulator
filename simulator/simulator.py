@@ -27,7 +27,7 @@ class PandaPowerExample:
         """
         return getattr(self.net, table)[column][index]
 
-    def get_value(self, table, column, index):
+    def get_value(self, tab  le, column, index):
         return getattr(self.net, table)[column][index]
 
     def set_net_value_random(self, table, column, ref_value):

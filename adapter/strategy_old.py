@@ -6,10 +6,10 @@ from abc import ABC, abstractmethod
 from hat.drivers import iec104
 
 sys.path.insert(0, os.getcwd() + '/../')
-sys.path.insert(0, os.getcwd() + '/../pg')
-from pg.tcp.tcp_client2 import TCPClient
-from pg.websocket.ws_client import WSClient
-from pg.tcp.TCPBuffer import MessageType
+sys.path.insert(0, os.getcwd() + '/../protocols')
+from protocols.tcp.tcp_client2 import TCPClient
+from protocols.ws.ws_client import WSClient
+from protocols.tcp.TCPBuffer import MessageType
 
 
 class Strategy(ABC):

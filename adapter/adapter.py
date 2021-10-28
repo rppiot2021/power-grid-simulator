@@ -1,4 +1,8 @@
-from pg.tcp.TCPBuffer import MessageType
+import sys
+import os
+sys.path.insert(0, os.getcwd() + '/../protocols')
+
+from tcp.TCPBuffer import MessageType
 
 
 class Adapter:

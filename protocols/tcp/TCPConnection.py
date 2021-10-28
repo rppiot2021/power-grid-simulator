@@ -1,8 +1,12 @@
+import sys
+import os
+sys.path.insert(0, os.getcwd() + '/../')
+
 import selectors
 import struct
 import time
 
-from pg.tcp.TCPBuffer import BufferType, MessageType
+from tcp.TCPBuffer import BufferType, MessageType
 
 
 class TCPConnection:

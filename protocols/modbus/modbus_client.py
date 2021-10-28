@@ -8,7 +8,7 @@ import hat.drivers.modbus as mod
 import hat.drivers.tcp
 from hat.drivers.modbus.common import DataType
 
-from pg.util.client import Client
+from protocols.util.client import Client
 
 
 class ModbusClient(Client):

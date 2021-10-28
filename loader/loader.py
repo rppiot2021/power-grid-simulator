@@ -2,16 +2,19 @@ import sys
 import os
 
 sys.path.insert(0, os.getcwd() + '/')
-sys.path.insert(0, os.getcwd() + '/../pg')
+sys.path.insert(0, os.getcwd() + '/../')
 # sys.path.insert(0, os.getcwd() + '/../adapter')
 sys.path.insert(0, os.getcwd() + '/../adapter')
 
 from hat.aio import run_asyncio
 import signal
 from adapter import Adapter
-# from pg.server import Server
-# from pg.ws_server import WSServer
-# from pg.client import Client
+
+from ws.ws_client import WSClient
+
+# from protocols.server import Server
+# from protocols.ws_server import WSServer
+# from protocols.client import Client
 # import websockets
 
 from yaml_parser import get_config
@@ -74,9 +77,7 @@ async def async_main():
 
         ws_config = config["protocol_WebSocket"]
 
-        print(ws_config)
-
-        # [print(literal_eval(i)) for i in ws_config]
+        print("ws_config", ws_config)
 
         identifier = getattr(sys.modules[__name__], "WSClient")
 
@@ -108,8 +109,6 @@ async def async_main():
     # await adapter.connect()
     # print(await adapter.tcp_get_curr_data())
     # await adapter.close()
-
-
 
     # todo sanitize
     # print("connect using:", adapter.server_type)

@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.insert(0, os.getcwd() + '/../')
+
 import io
 import json
 import selectors
@@ -5,7 +9,7 @@ import socket
 import struct
 import traceback
 
-from pg.util.server import Server
+from util.server import Server
 
 
 class Message:

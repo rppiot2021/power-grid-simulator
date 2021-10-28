@@ -3,7 +3,7 @@ import socket
 
 from TCPBuffer import Buffer, MessageType
 from TCPConnection import TCPConnection
-from pg.util.client import Client
+from protocols.util.client import Client
 
 
 class TCPClient(Client):

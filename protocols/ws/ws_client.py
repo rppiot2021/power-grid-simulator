@@ -1,7 +1,7 @@
 from hat.aio import run_asyncio
 from websocket import create_connection
 
-from pg.util.client import Client
+from protocols.util.client import Client
 
 
 class WSClient(Client):
