@@ -30,6 +30,7 @@ class LogInterface:
         self.db_last_log_time = datetime.datetime.fromtimestamp(time.time())
         self.file_last_log_time = datetime.datetime.fromtimestamp(time.time())
 
+        # todo test this
         atexit.register(self.db._close)
         atexit.register(self.file._close)
 
