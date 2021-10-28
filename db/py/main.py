@@ -4,71 +4,105 @@ backend manager
 
 import datetime
 import time
+from enum import Enum
 
 from hat import aio
-from hat.event.server import common
-from project.backend.db_manager import DatabaseManager
-from project.backend.file_manager import FileManager
+from hat.aio import run_asyncio
 
-json_schema_id = None
-json_schema_repo = None
+from db_manager import DatabaseManager
+from file_manager import FileManager
 
-db = DatabaseManager()
-file = FileManager()
+import atexit
 
-
-async def create(conf):
-    backend = Backend()
-    backend._async_group = aio.Group()
-
-    backend._async_group.spawn(aio.call_on_cancel, db._close)
-    backend._async_group.spawn(aio.call_on_cancel, file._close)
-
-    return backend
+class LogType(Enum):
+    DB = 0  # Database
+    FILE = 1  # File
 
 
-class Backend(common.Backend):
-    last_log_time = datetime.datetime.fromtimestamp(time.time())
+class LogInterface:
+    # last_log_time = datetime.datetime.fromtimestamp(time.time())
 
-    def get_file(self):
-        return file
+    def __init__(self):
+        self.last_log_time = datetime.datetime.fromtimestamp(time.time())
+        self.db = DatabaseManager()
+        self.file = FileManager()
 
-    def get_db(self):
-        return db
+        self.db_last_log_time = datetime.datetime.fromtimestamp(time.time())
+        self.file_last_log_time = datetime.datetime.fromtimestamp(time.time())
 
-    async def register(self, events):
-        """
-        middleware manager, logs into file and database with offset of 2 minutes
+        atexit.register(self.db._close)
+        atexit.register(self.file._close)
 
-        """
-
-        raw_adr = events[0].event_type[-1]
-
-        if not raw_adr.count(";") == 1:
-            return await self._async_group.spawn(aio.call, lambda: events)
-
-        raw_adr = raw_adr.split(";")
-
-        asdu = raw_adr[0]
-        io = raw_adr[1]
-
-        pl = events[0].payload
-
-        val = 0 if not pl else pl.data
+    def file_write(self, *data):
 
         current_time = datetime.datetime.fromtimestamp(time.time())
-        # if current_time - datetime.timedelta(seconds=3) > Backend.last_log_time:
-        if True:
-            Backend.last_log_time = current_time
-            current_time = datetime.datetime.fromtimestamp(time.time())
 
-            self.get_file().write(current_time, asdu, io, val)
-            self.get_db().insert_wrapper(asdu, io, val)
+        # if True:
+        if current_time - datetime.timedelta(seconds=3) > self.file_last_log_time:
+            self.file_last_log_time = current_time
 
-        return await self._async_group.spawn(aio.call, lambda: events)
+            self.file.write(data)
 
-    async def query(self,
-                    data
-                    ):
-        result = []
-        return await self._async_group.spawn(aio.call, lambda: result)
+            print("log")
+
+        else:
+            print("ignore")
+
+    def db_write(self, asdu, io, value):
+
+        current_time = datetime.datetime.fromtimestamp(time.time())
+
+        # if True:
+        if current_time - datetime.timedelta(seconds=3) > self.db_last_log_time:
+            self.db_last_log_time = current_time
+
+            self.db.insert(asdu, io, value)
+
+    def db_custom_insert(self, table, *params):
+
+        current_time = datetime.datetime.fromtimestamp(time.time())
+
+        # if True:
+        if current_time - datetime.timedelta(seconds=3) > self.db_last_log_time:
+            self.db_last_log_time = current_time
+
+            self.db.custom_insert(table, params)
+
+
+# class Tmp:
+#     def __init__(self):
+#         print("created")
+#
+# async def create(obj):
+#
+#     c_obj = obj()
+#
+#     c_obj._async_group = aio.Group()
+#
+#     db_manager = DBManager()
+#
+#     c_obj._async_group.spawn(aio.call_on_cancel, db_manager.db._close)
+#     c_obj._async_group.spawn(aio.call_on_cancel, db_manager.file._close)
+#
+#     print("created")
+#
+#     return c_obj
+
+async def async_main():
+
+    log_interface = LogInterface()
+
+    i = 0
+
+    while True:
+        i += 1
+
+        log_interface.file_write("bla bla bla")
+        time.sleep(1)
+
+def main():
+    run_asyncio(async_main())
+
+
+if __name__ == '__main__':
+    main()
