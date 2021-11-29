@@ -1,28 +1,27 @@
-import sys
-import os
-sys.path.insert(0, os.getcwd() + '/../')
-
 import io
 import json
 import selectors
 import socket
 import struct
-import traceback
 
-from util.server import Server
+from protocols.util.client import Client
 
 
 class Message:
-    def __init__(self, selector, sock, addr):
+    def __init__(self, selector, sock, addr, request):
         self.selector = selector
         self.sock = sock
         self.addr = addr
+        self.request = request
         self._recv_buffer = b""
         self._send_buffer = b""
+        self._request_queued = False
         self._jsonheader_len = None
         self.jsonheader = None
-        self.request = None
-        self.response_created = False
+        self.response = None
+
+    def __str__(self):
+        return str(self._recv_buffer) + ";" + str(self._send_buffer)
 
     def _set_selector_events_mask(self, mode):
         """Set selector to listen for events: mode is 'r', 'w', or 'rw'."""
@@ -51,7 +50,7 @@ class Message:
 
     def _write(self):
         if self._send_buffer:
-            print("sending", repr(self._send_buffer), "to", self.addr)
+            # print("sending", repr(self._send_buffer), "to", self.addr)
             try:
                 # Should be ready to write
                 sent = self.sock.send(self._send_buffer)
@@ -60,9 +59,6 @@ class Message:
                 pass
             else:
                 self._send_buffer = self._send_buffer[sent:]
-                # Close when the buffer is drained. The response has been sent.
-                if sent and not self._send_buffer:
-                    self.close()
 
     def _json_encode(self, obj, encoding):
         return json.dumps(obj, ensure_ascii=False).encode(encoding)
@@ -79,9 +75,6 @@ class Message:
             self, *, content_bytes, content_type, content_encoding
     ):
         jsonheader = {
-            # "byteorder": sys.byteorder,
-            # "content-type": content_type,
-            # "content-encoding": content_encoding,
             "content-length": len(content_bytes),
         }
         jsonheader_bytes = self._json_encode(jsonheader, "utf-8")
@@ -89,27 +82,22 @@ class Message:
         message = message_hdr + jsonheader_bytes + content_bytes
         return message
 
-    def _create_response_binary_content(self):
-        response = {
-            "content_bytes": b"First 10 bytes of request: "
-                             + self.request[:10],
-            "content_type": "binary/custom-server-binary-type",
-            "content_encoding": "binary",
-        }
-        return response
+    def _process_response_binary_content(self):
+        pass
+        # print(f"got response: {repr(content)}")
 
     def process_events(self, mask):
         if mask & selectors.EVENT_READ:
             self.read()
 
-            print("req", self.request)
+            # print("got", self.response)
         if mask & selectors.EVENT_WRITE:
             self.write()
 
+        return self.response
+
     def read(self):
         self._read()
-
-        print("got", self._recv_buffer)
 
         if self._jsonheader_len is None:
             self.process_protoheader()
@@ -119,18 +107,22 @@ class Message:
                 self.process_jsonheader()
 
         if self.jsonheader:
-            if self.request is None:
-                self.process_request()
+            if self.response is None:
+                self.process_response()
 
     def write(self):
-        if self.request:
-            if not self.response_created:
-                self.create_response()
+        if not self._request_queued:
+            self.queue_request()
 
         self._write()
 
+        if self._request_queued:
+            if not self._send_buffer:
+                # Set selector to listen for read events, we're done writing.
+                self._set_selector_events_mask("r")
+
     def close(self):
-        print("closing connection to", self.addr, "\n")
+        print("closing connection to", self.addr)
         try:
             self.selector.unregister(self.sock)
         except Exception as e:
@@ -150,6 +142,21 @@ class Message:
             # Delete reference to socket object for garbage collection
             self.sock = None
 
+    def queue_request(self):
+        content = self.request["content"]
+        content_type = self.request["type"]
+        content_encoding = self.request["encoding"]
+
+        req = {
+            "content_bytes": content,
+            "content_type": content_type,
+            "content_encoding": content_encoding,
+        }
+
+        message = self._create_message(**req)
+        self._send_buffer += message
+        self._request_queued = True
+
     def process_protoheader(self):
         hdrlen = 2
         if len(self._recv_buffer) >= hdrlen:
@@ -164,10 +171,17 @@ class Message:
             self.jsonheader = self._json_decode(
                 self._recv_buffer[:hdrlen], "utf-8"
             )
-
             self._recv_buffer = self._recv_buffer[hdrlen:]
+            # for reqhdr in (
+            #     # "byteorder",
+            #     "content-length",
+            #     # "content-type",
+            #     # "content-encoding",
+            # ):
+            #     if reqhdr not in self.jsonheader:
+            #         raise ValueError(f'Missing required header "{reqhdr}".')
 
-    def process_request(self):
+    def process_response(self):
         content_len = self.jsonheader["content-length"]
         if not len(self._recv_buffer) >= content_len:
             return
@@ -175,70 +189,92 @@ class Message:
         self._recv_buffer = self._recv_buffer[content_len:]
 
         # Binary or unknown content-type
-        self.request = data
-        print(
-            f'received request from',
-            self.addr,
+        self.response = data
+        # print( f'received  response from',self.addr )
+        self._process_response_binary_content()
+        # Close when response has been processed
+        self.close()
+
+
+class TCPClient(Client):
+
+    def __init__(self, domain_name, host):
+        super(TCPClient, self).__init__(domain_name, host)
+
+        self.rec_list = []
+
+    def send(self, payload):
+
+        self.driver(payload)
+
+    def receive(self):
+
+        return self.rec_list
+
+    @staticmethod
+    def create_request(msg_payload):
+        return dict(
+            type="binary/custom-client-binary-type",
+            encoding="binary",
+            content=bytes(msg_payload, encoding="utf-8"),
         )
-        # Set selector to listen for write events, we're done reading.
-        self._set_selector_events_mask("w")
 
-    def create_response(self):
+    def start_connection(self, request, sel):
+        addr = (self.domain_name, self.port)
+        print("starting connection to", addr)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setblocking(False)
+        sock.connect_ex(addr)
+        events = selectors.EVENT_READ | selectors.EVENT_WRITE
+        message = Message(sel, sock, addr, request)
+        sel.register(sock, events, data=message)
 
-        # Binary or unknown content-type
-        response = self._create_response_binary_content()
-        message = self._create_message(**response)
-        self.response_created = True
-        self._send_buffer += message
-
-
-class TCPServer(Server):
-
-    def __init__(self, domain_name, port):
-        super(TCPServer, self).__init__(domain_name, port)
-
-        self.sel = selectors.DefaultSelector()
-        address = (self.host_name, self.port)
-        lsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # Avoid bind() exception: OSError: [Errno 48] Address already in use
-        lsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        lsock.bind(address)
-        lsock.listen()
-        print("listening on", address)
-        lsock.setblocking(False)
-        self.sel.register(lsock, selectors.EVENT_READ, data=None)
+    def driver(self, payload):
+        sel = selectors.DefaultSelector()
+        request = self.create_request(msg_payload=payload)
+        self.start_connection(request, sel)
 
         try:
             while True:
-                events = self.sel.select(timeout=None)
+                events = sel.select(timeout=1)
+                # print("get map", sel.get_map())
+                # print("events", events)
                 for key, mask in events:
-                    if key.data is None:
-                        self.accept_wrapper(key.fileobj)
-                    else:
-                        message = key.data
-                        try:
-                            message.process_events(mask)
-                        except Exception:
-                            print(
-                                "main: error: exception for",
-                                f"{message.address}:\n{traceback.format_exc()}",
-                            )
-                            message.close()
+                    # print("key", key)
+                    # print("mask", mask)
+
+                    message = key.data
+                    # print("message", message)
+                    try:
+                        result = message.process_events(mask)
+                        # print("result", result)
+
+                        if result:
+                            self.rec_list.append(result)
+                    except Exception:
+                        # print(
+                        #     "main: error: exception for",
+                        #     f"{message.addr}:\n{traceback.format_exc()}",
+                        # )
+                        message.close()
+                    # print()
+
+                if not sel.get_map():
+                    # print("not get map")
+                    break
+
         except KeyboardInterrupt:
             print("caught keyboard interrupt, exiting")
         finally:
-            self.sel.close()
-
-    def accept_wrapper(self, sock):
-        conn, addr = sock.accept()  # Should be ready to read
-        print("accepted connection from", addr)
-        conn.setblocking(False)
-        message = Message(self.sel, conn, addr)
-        self.sel.register(conn, selectors.EVENT_READ, data=message)
+            sel.close()
 
 
 def main():
-    TCPServer("127.0.0.1", 4567)
+    tcp_client = TCPClient("127.0.0.1", 4567)
+    tcp_client.send("tmp 1234567890")
+    tcp_client.send("aaaaa bbbb ccc dd e")
+
+    # print(tcp_client.receive())
 
 
 if __name__ == '__main__':

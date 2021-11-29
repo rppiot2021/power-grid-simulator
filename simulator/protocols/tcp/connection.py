@@ -1,12 +1,13 @@
 import sys
 import os
-sys.path.insert(0, os.getcwd() + '/../')
 
 import selectors
 import struct
 import time
 
 from tcp.TCPBuffer import BufferType, MessageType
+
+sys.path.insert(0, os.getcwd() + '/../')
 
 
 class TCPConnection:
@@ -42,7 +43,7 @@ class TCPConnection:
         """
         try:
             raw_message_length = self.sock.recv(4)  # --> b'\x00\x08\xf8\x93'
-        except:
+        except Exception:
             # print("no header visible")
             return None
         if not raw_message_length:
@@ -68,7 +69,7 @@ class TCPConnection:
             close = self.read()
             try:
                 self._set_selector_events_mask("w")
-            except:
+            except Exception:
                 pass
 
         if mask & selectors.EVENT_WRITE:
@@ -77,7 +78,7 @@ class TCPConnection:
             try:
                 pass
                 self._set_selector_events_mask("r")
-            except:
+            except Exception:
                 pass
 
         return close

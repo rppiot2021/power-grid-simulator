@@ -119,8 +119,8 @@ class ModbusClient(Client):
 
         payload_hex = "".join(pl_hex_split)
 
-        payload_hex = payload_hex[:self.fragment_len].lstrip("0") + payload_hex[
-                                                                    self.fragment_len:]
+        payload_hex = (payload_hex[:self.fragment_len].lstrip("0")
+                       + payload_hex[self.fragment_len:])
 
         try:
             return bytes.fromhex(payload_hex).decode('utf-8')
@@ -130,7 +130,8 @@ class ModbusClient(Client):
             print("err", payload_hex)
 
             return ''.join(
-                [chr(int(''.join(c), 16)) for c in zip(a[0::2], a[1::2])])
+                [chr(int(''.join(c), 16))
+                 for c in zip(payload_hex[0::2], payload_hex[1::2])])
 
             # raise ValueError("err")
 
@@ -144,7 +145,7 @@ class ModbusClient(Client):
             '''
                 header
                     message len
-                    
+
             '''
 
             header = [
@@ -198,10 +199,10 @@ async def async_main(domain_name, port):
         1000: "tmp val 2",
         2000: "fnfofsonifni",
         3000: "tmpffff val 2",
-        4000: "xjfnwagxoeplewhawikscfoqlvvclombqwfklumoywsxlawdrjasosxozibbxhjlp",
+        4000: "xjfnwagxoeplewhawikscfoqlvvclombqwfklumoywsxlawdrjasosxozibbxhjlp",  # NOQA
         5000: "pwzwggoyuugtftmoksogwhkkduzcwccludztazxhyfautrfgrjjokfv",
-        6000: "fqvnbusfjhzgkhpqankvuehugpyeveutimdpqqsvwzhvbcrtlmgolxudixeehlzqsmeunuxfwhgnxpbhkkvrocbbnjvhvmycxcykwalgptecjemjdrrjcyqzlqxvxjaqxbjlvywziujduzagoacuznnxelzwpzzwcrsxgkmomkevinciahyazjvxatzre",
-        7000: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        6000: "fqvnbusfjhzgkhpqankvuehugpyeveutimdpqqsvwzhvbcrtlmgolxudixeehlzqsmeunuxfwhgnxpbhkkvrocbbnjvhvmycxcykwalgptecjemjdrrjcyqzlqxvxjaqxbjlvywziujduzagoacuznnxelzwpzzwcrsxgkmomkevinciahyazjvxatzre",  # NOQA
+        7000: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",  # NOQA
     }
 
     for adr, msg in dummy_data.items():
@@ -209,12 +210,12 @@ async def async_main(domain_name, port):
 
     dummy_data = {
         0: "tmp val 1",
-        1000: "kogkdbloynafmrzmhnpfjsktklnqhqxajroplzknitnafxoscefdarfnrellivzhgeqjmpspklnpslkdneplxaeshfqslzovgotvpghuqiyzwaqjhekcdavklhegxog",
-        2000: "kfkvetettgydnuzpkorhxeulrpruzocwpkilhcbdlsxnyhztlwgbkvvsvhtwget",
+        1000: "kogkdbloynafmrzmhnpfjsktklnqhqxajroplzknitnafxoscefdarfnrellivzhgeqjmpspklnpslkdneplxaeshfqslzovgotvpghuqiyzwaqjhekcdavklhegxog",  # NOQA
+        2000: "kfkvetettgydnuzpkorhxeulrpruzocwpkilhcbdlsxnyhztlwgbkvvsvhtwget",  # NOQA
         3000: "lw",
-        4000: "beiqeshxhgkxwbfapcaeucbpevdsddysaejocsegpawunsedyauicpmukgxqzrvqiolbhjxfzwvkkv",
-        5000: "zsczvqqkgewnjgexwepqeyvdfdiiqaoptepqiwhityvkysmynsgbqppdxnffdaadcriqaozqogwjtlxlyngxuhly",
-        6000: "pecemykhwrekjmfnjpfbsaukyagofjepbtzopldarypnojgjfgzxilllbguotfodhycembqixsejksybugnrqyxfulxhxmowcjzbtodywrvzsveobgrkzwx",
+        4000: "beiqeshxhgkxwbfapcaeucbpevdsddysaejocsegpawunsedyauicpmukgxqzrvqiolbhjxfzwvkkv",  # NOQA
+        5000: "zsczvqqkgewnjgexwepqeyvdfdiiqaoptepqiwhityvkysmynsgbqppdxnffdaadcriqaozqogwjtlxlyngxuhly",  # NOQA
+        6000: "pecemykhwrekjmfnjpfbsaukyagofjepbtzopldarypnojgjfgzxilllbguotfodhycembqixsejksybugnrqyxfulxhxmowcjzbtodywrvzsveobgrkzwx",  # NOQA
         7000: "pfgwizsetdqubcierrjlwgajgvtkrcocjretuaouel",
     }
 

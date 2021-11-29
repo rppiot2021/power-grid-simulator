@@ -1,8 +1,10 @@
 import sys
 import os
-sys.path.insert(0, os.getcwd() + '/../protocols')
 
 from tcp.TCPBuffer import MessageType
+
+
+sys.path.insert(0, os.getcwd() + '/../protocols')
 
 
 class Adapter:
@@ -48,7 +50,8 @@ class Adapter:
     async def get(self, protocol_type, domain_name, port):
         # todo check if need close for protocol type in if statement
 
-        if not self.source_client or self.source_client != protocol_type(domain_name, port):
+        if (not self.source_client
+                or self.source_client != protocol_type(domain_name, port)):
             self.source_client = protocol_type(domain_name, port)
 
         # todo remove this line, used for testing
@@ -69,23 +72,24 @@ class Adapter:
         print("sending")
 
     async def forward(
-        self,
-        source_protocol_type,
-        source_domain_name,
-        source_port,
-        keep_alive_source,
-        destination_protocol_type,
-        destination_domain_name,
-        destination_port,
-        keep_alive_destination,
-        forward_without_confirmation=False
-    ):
-        data = await self.get(source_protocol_type, source_domain_name, source_port)
+            self,
+            source_protocol_type,
+            source_domain_name,
+            source_port,
+            keep_alive_source,
+            destination_protocol_type,
+            destination_domain_name,
+            destination_port,
+            keep_alive_destination,
+            forward_without_confirmation=False):
+        data = await self.get(source_protocol_type, source_domain_name,
+                              source_port)
 
         if not keep_alive_source:
             self.source_client.close()
 
-        if forward_without_confirmation or await self.notify_wait_for_confirmation(payload=data):
+        if (forward_without_confirmation
+                or await self.notify_wait_for_confirmation(payload=data)):
             await self.send(
                 destination_protocol_type,
                 destination_domain_name,

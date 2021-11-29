@@ -6,13 +6,13 @@ import datetime
 import time
 from enum import Enum
 
-from hat import aio
 from hat.aio import run_asyncio
 
 from db_manager import DatabaseManager
 from file_manager import FileManager
 
 import atexit
+
 
 class LogType(Enum):
     DB = 0  # Database
@@ -39,7 +39,8 @@ class LogInterface:
         current_time = datetime.datetime.fromtimestamp(time.time())
 
         # if True:
-        if current_time - datetime.timedelta(seconds=3) > self.file_last_log_time:
+        time_limit = current_time - datetime.timedelta(seconds=3)
+        if time_limit > self.file_last_log_time:
             self.file_last_log_time = current_time
 
             self.file.write(data)
@@ -54,7 +55,8 @@ class LogInterface:
         current_time = datetime.datetime.fromtimestamp(time.time())
 
         # if True:
-        if current_time - datetime.timedelta(seconds=3) > self.db_last_log_time:
+        time_limit = current_time - datetime.timedelta(seconds=3)
+        if time_limit > self.db_last_log_time:
             self.db_last_log_time = current_time
 
             self.db.insert(asdu, io, value)
@@ -64,7 +66,8 @@ class LogInterface:
         current_time = datetime.datetime.fromtimestamp(time.time())
 
         # if True:
-        if current_time - datetime.timedelta(seconds=3) > self.db_last_log_time:
+        time_limit = current_time - datetime.timedelta(seconds=3)
+        if time_limit > self.db_last_log_time:
             self.db_last_log_time = current_time
 
             self.db.custom_insert(table, params)
@@ -100,6 +103,7 @@ async def async_main():
 
         log_interface.file_write("bla bla bla")
         time.sleep(1)
+
 
 def main():
     run_asyncio(async_main())

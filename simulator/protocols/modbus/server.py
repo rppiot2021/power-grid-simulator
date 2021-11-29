@@ -13,8 +13,7 @@ class ModbusServer(Server):
             device_id,
             data_type,
             start_address,
-            values
-    ):
+            values):
         print("write ", slave, device_id, data_type)
 
         for idx, val in enumerate(values):
@@ -32,8 +31,7 @@ class ModbusServer(Server):
             device_id,
             data_type,
             start_address,
-            quantity=0
-    ):
+            quantity=0):
         print("read ", slave, device_id, data_type)
         # print(self.container[start_address:(int(start_address)+quantity)])
         return self.container[start_address:(int(start_address) + quantity)]
@@ -56,8 +54,7 @@ async def init_modbus_server():
         server.slave_cb,
         server.read,
         server.write,
-        server.write_mask
-    )
+        server.write_mask)
 
     print("Slave created -> ", s)
     await s.wait_closing()

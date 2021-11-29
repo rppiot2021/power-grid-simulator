@@ -1,13 +1,13 @@
 import sys
 import os
 
+from hat.aio import run_asyncio
+from simulator.protocols.modbus.modbus_server import init_modbus_server
+
+
 sys.path.insert(0, os.getcwd() + '/')
 sys.path.insert(0, os.getcwd() + '/../')
 sys.path.insert(0, os.getcwd() + '/../adapter')
-
-from hat.aio import run_asyncio
-
-from protocols.modbus.modbus_server import ModbusServer
 
 
 async def async_main():

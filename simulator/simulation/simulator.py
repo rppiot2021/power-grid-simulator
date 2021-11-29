@@ -27,13 +27,12 @@ class PandaPowerExample:
         """
         return getattr(self.net, table)[column][index]
 
-    def get_value(self, tab  le, column, index):
+    def get_value(self, table, column, index):
         return getattr(self.net, table)[column][index]
 
     def set_net_value_random(self, table, column, ref_value):
         getattr(self.net, table)[column] = max(
             random.uniform(ref_value * 0.75, ref_value * 1.25), 0)
-
 
 
 class Simulator(aio.Resource):
@@ -80,8 +79,7 @@ class Simulator(aio.Resource):
                 command.asdu_address,
                 command.io_address,
                 command.value,
-                iec104.Cause.REMOTE_COMMAND
-            )
+                iec104.Cause.REMOTE_COMMAND)
 
         await self._notify()
 
@@ -108,8 +106,7 @@ class Simulator(aio.Resource):
             io,
             self._protocol.wrap_value(series[point_conf['id']],
                                       point_conf['type']),
-            iec104.Cause.INITIALIZED
-        )
+            iec104.Cause.INITIALIZED)
 
     async def _loop_while_payload(self, asdu, io, point_conf, series):
 
@@ -120,8 +117,7 @@ class Simulator(aio.Resource):
 
         if not old_value.value == new_val.value:
             self._push_new_value_to_state(
-                asdu, io, new_val, iec104.Cause.SPONTANEOUS
-            )
+                asdu, io, new_val, iec104.Cause.SPONTANEOUS)
 
     async def _main_loop(self):
 
@@ -152,9 +148,7 @@ class Simulator(aio.Resource):
             self._protocol.Data(
                 value=value,
                 cause=cause,
-                timestamp=time.time()
-            )
-        )
+                timestamp=time.time()))
         global callback_new_value
         callback_new_value([str(asdu), str(io)])
 

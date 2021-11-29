@@ -1,6 +1,5 @@
 import sys
 import os
-sys.path.insert(0, os.getcwd() + '/../')
 
 import selectors
 import socket
@@ -9,6 +8,8 @@ import time
 from TCPBuffer import Buffer
 from TCPConnection import TCPConnection
 from util.server import Server
+
+sys.path.insert(0, os.getcwd() + '/../')
 
 
 class TCPServer(Server):

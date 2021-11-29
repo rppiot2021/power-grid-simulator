@@ -42,8 +42,8 @@ class DatabaseManager(LogManager):
         self.cursor = self.connection.cursor()
 
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS t
-                       (date text,  
-                       asdu integer, 
+                       (date text,
+                       asdu integer,
                        io integer,
                        value real)''')
 
@@ -126,8 +126,8 @@ class DatabaseManager(LogManager):
         create backup of current state of db and empty current db
         """
 
-        num_of_rows = self.cursor.execute("SELECT COUNT(*) FROM t;").fetchone()[
-            0]
+        num_of_rows = self.cursor.execute(
+            "SELECT COUNT(*) FROM t;").fetchone()[0]
         print(num_of_rows)
 
         if num_of_rows >= self.log_buffer:

@@ -1,0 +1,264 @@
+---
+address:
+    host: 0.0.0.0
+    port: 19999
+points:
+    0:
+        0:
+            id: 0
+            property: p_mw
+            table: res_bus
+            type: float
+        1:
+            id: 0
+            property: q_mvar
+            table: res_bus
+            type: float
+    1:
+        0:
+            id: 1
+            property: p_mw
+            table: res_bus
+            type: float
+        1:
+            id: 1
+            property: q_mvar
+            table: res_bus
+            type: float
+    2:
+        0:
+            id: 2
+            property: p_mw
+            table: res_bus
+            type: float
+        1:
+            id: 2
+            property: q_mvar
+            table: res_bus
+            type: float
+    3:
+        0:
+            id: 3
+            property: p_mw
+            table: res_bus
+            type: float
+        1:
+            id: 3
+            property: q_mvar
+            table: res_bus
+            type: float
+    4:
+        0:
+            id: 4
+            property: p_mw
+            table: res_bus
+            type: float
+        1:
+            id: 4
+            property: q_mvar
+            table: res_bus
+            type: float
+    5:
+        0:
+            id: 5
+            property: p_mw
+            table: res_bus
+            type: float
+        1:
+            id: 5
+            property: q_mvar
+            table: res_bus
+            type: float
+    6:
+        0:
+            id: 6
+            property: p_mw
+            table: res_bus
+            type: float
+        1:
+            id: 6
+            property: q_mvar
+            table: res_bus
+            type: float
+    10:
+        0:
+            id: 0
+            property: p_from_mw
+            table: res_line
+            type: float
+        1:
+            id: 0
+            property: q_from_mvar
+            table: res_line
+            type: float
+        2:
+            id: 0
+            property: p_to_mw
+            table: res_line
+            type: float
+        3:
+            id: 0
+            property: q_to_mvar
+            table: res_line
+            type: float
+        4:
+            id: 0
+            property: loading_percent
+            table: res_line
+            type: float
+    11:
+        0:
+            id: 1
+            property: p_from_mw
+            table: res_line
+            type: float
+        1:
+            id: 1
+            property: q_from_mvar
+            table: res_line
+            type: float
+        2:
+            id: 1
+            property: p_to_mw
+            table: res_line
+            type: float
+        3:
+            id: 1
+            property: q_to_mvar
+            table: res_line
+            type: float
+        4:
+            id: 1
+            property: loading_percent
+            table: res_line
+            type: float
+    12:
+        0:
+            id: 2
+            property: p_from_mw
+            table: res_line
+            type: float
+        1:
+            id: 2
+            property: q_from_mvar
+            table: res_line
+            type: float
+        2:
+            id: 2
+            property: p_to_mw
+            table: res_line
+            type: float
+        3:
+            id: 2
+            property: q_to_mvar
+            table: res_line
+            type: float
+        4:
+            id: 2
+            property: loading_percent
+            table: res_line
+            type: float
+    13:
+        0:
+            id: 3
+            property: p_from_mw
+            table: res_line
+            type: float
+        1:
+            id: 3
+            property: q_from_mvar
+            table: res_line
+            type: float
+        2:
+            id: 3
+            property: p_to_mw
+            table: res_line
+            type: float
+        3:
+            id: 3
+            property: q_to_mvar
+            table: res_line
+            type: float
+        4:
+            id: 3
+            property: loading_percent
+            table: res_line
+            type: float
+    20:
+        0:
+            id: 0
+            property: p_hv_mw
+            table: res_trafo
+            type: float
+        1:
+            id: 0
+            property: q_hv_mvar
+            table: res_trafo
+            type: float
+        2:
+            id: 0
+            property: p_lv_mw
+            table: res_trafo
+            type: float
+        3:
+            id: 0
+            property: q_lv_mvar
+            table: res_trafo
+            type: float
+        4:
+            id: 0
+            property: loading_percent
+            table: res_trafo
+            type: float
+    30:
+        0:
+            id: 0
+            property: closed
+            table: switch
+            type: single
+    31:
+        0:
+            id: 1
+            property: closed
+            table: switch
+            type: single
+    32:
+        0:
+            id: 2
+            property: closed
+            table: switch
+            type: single
+    33:
+        0:
+            id: 3
+            property: closed
+            table: switch
+            type: single
+    34:
+        0:
+            id: 4
+            property: closed
+            table: switch
+            type: single
+    35:
+        0:
+            id: 5
+            property: closed
+            table: switch
+            type: single
+    36:
+        0:
+            id: 6
+            property: closed
+            table: switch
+            type: single
+    37:
+        0:
+            id: 7
+            property: closed
+            table: switch
+            type: single
+spontaneity:
+    mu: 5
+    sigma: 1
+...

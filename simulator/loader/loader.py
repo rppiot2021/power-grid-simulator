@@ -1,16 +1,13 @@
+"""
+utils for address translations
+"""
+
 import sys
 import os
-
-sys.path.insert(0, os.getcwd() + '/')
-sys.path.insert(0, os.getcwd() + '/../')
-# sys.path.insert(0, os.getcwd() + '/../adapter')
-sys.path.insert(0, os.getcwd() + '/../adapter')
 
 from hat.aio import run_asyncio
 import signal
 from adapter import Adapter
-
-from ws.ws_client import WSClient
 
 # from protocols.server import Server
 # from protocols.ws_server import WSServer
@@ -19,9 +16,11 @@ from ws.ws_client import WSClient
 
 from yaml_parser import get_config
 
-"""
-utils for address translations
-"""
+
+sys.path.insert(0, os.getcwd() + '/')
+sys.path.insert(0, os.getcwd() + '/../')
+# sys.path.insert(0, os.getcwd() + '/../adapter')
+sys.path.insert(0, os.getcwd() + '/../adapter')
 
 
 # todo later
@@ -85,7 +84,8 @@ async def async_main():
 
         await adapter.forward(
 
-            source_protocol_type=getattr(sys.modules[__name__], ws_config["client_class_name"]),
+            source_protocol_type=getattr(sys.modules[__name__],
+                                         ws_config["client_class_name"]),
             source_domain_name=ws_config["domain_name"],
             source_port=int(ws_config["port"]),
 
@@ -95,8 +95,7 @@ async def async_main():
             destination_domain_name=None,
             destination_port=None,
             keep_alive_destination=True,
-            forward_without_confirmation=True
-        )
+            forward_without_confirmation=True)
 
         # def __init__(self, domain_name="127.0.0.1", port=8765):
 
@@ -129,6 +128,7 @@ async def async_main():
     # await t._run()
 
     # return
+
 
 def main():
     run_asyncio(async_main())

@@ -1,9 +1,6 @@
 import os
 import sys
 
-# sys.path.insert(0, os.getcwd() + '/../protocols')
-sys.path.insert(0, os.getcwd() + '/../../')
-
 import asyncio
 import signal
 
@@ -12,6 +9,9 @@ import websockets
 from hat.aio import run_asyncio
 
 from protocols.util.server import Server
+
+# sys.path.insert(0, os.getcwd() + '/../protocols')
+sys.path.insert(0, os.getcwd() + '/../../')
 
 
 class WSServer(Server):
