@@ -1,56 +1,177 @@
 # power-grid-simulator
 
-setup
-------
+This repository contains a digital twin of a power grid. It starts an
+environment where pyhsical simulations of the grid are performed. Different
+communication interfaces can be configured with the simulator, that host their
+servers and allow external applications to connect. Currently supported types
+of communication interfaces set up servers using Modbus and IEC104 industrial
+protocols.
 
-    python3 -m venv venv
+The simulator is a Python project, where an executable is ran with a
+configuration that specifies communication interfaces and the values they serve
+on their servers. External applications can then connect to those interfaces
+and display the readings from the devices.
 
-    source venv/bin/activate
+## Setup
 
-    pip install -r requirements.pip.txt
+To run the project, clone this repository and install the requirements (use of
+virtual environments is encouraged) by calling:
 
+```shell
+pip install -r requirements.txt
+```
 
-starting simulator
-------
+## Running
 
+The simulator may be ran by positioning to the root of this repository and
+calling:
 
-    python3 simulator/main.py
+```shell
+python -m simulator.main
+```
 
+This will run the simulator with the default configuration. Alternatively, to
+use a different configuration, ``--conf-path`` argument may be passed, whose
+value is a path to a JSON or YAML file containing a different configuration.
+More on configuring the simulator in the following sections.
 
+## Simulation
 
-*IEC 60870-5-104* protocol
-------
+The simulator uses a [simple power
+grid](https://pandapower.readthedocs.io/en/v2.4.0/networks/example.html#simple-example-network).
+This grid has a connection to an external grid, two generators and a load. The
+generators and loads sporadically change their power generations and
+consumptions, causing changes of physical properties of elements across the
+whole network. The communication interfaces wait for these changes and, when
+they occur, they notify them over the industrial protocols that they use.
+Additionally, the communication interfaces may also affect the simulation, by
+changing some of its parameters based on the messages they receive from their
+clients.
 
-*IEC 104* is industrial communication protocol which is being used in
-energetics for communication with field devices.  It is one of many protocols
-that are being used for this purpose.
+## Default configuration
 
-Affiliate links for connecting to simulator using Hat-core iec wrapper
-implementation:
+The default configuration starts a simulation with the following power grid:
 
-[IEC 60870-5-104 Hat-core implementation](https://core.hat-open.com/docs/libraries/drivers/iec104.html)  
-[IEC 60870-5-104 Hat-core documentation](https://core.hat-open.com/docs/pyhat/hat/drivers/iec104/index.html)
+![Simple power grid](images/network.svg)
 
-This repository contains simulator and adapter.
+A communication interface using an IEC104 slave is set up to listen for new
+connections on address ``127.0.0.1:12345``. It may be interrogated in order to
+receive the whole state and it will notify all active connections if simulation
+changes occur. IEC104 clients can send command requests in order to modify the
+states of the switch elements, causing the simulation to turn them off or on.
 
-Simulator generates values for small electrical scheme. Generated values change
-periodically and can be changed by users action.
+The following table shows how individual measurements and indications (switch
+positions) are sent to clients connected using IEC104:
 
-Simulator can be started with:
+|Element type|Element ID|Property                      |ASDU|IO  |
+|------------|----------|------------------------------|----|----|
+|Bus         |0         |active power                  |0   |0   |
+|Bus         |0         |inactive power                |0   |1   |
+|Bus         |1         |active power                  |1   |0   |
+|Bus         |1         |inactive power                |1   |1   |
+|Bus         |2         |active power                  |2   |0   |
+|Bus         |2         |inactive power                |2   |1   |
+|Bus         |3         |active power                  |3   |0   |
+|Bus         |3         |inactive power                |3   |1   |
+|Bus         |4         |active power                  |4   |0   |
+|Bus         |4         |inactive power                |4   |1   |
+|Bus         |5         |active power                  |5   |0   |
+|Bus         |5         |inactive power                |5   |1   |
+|Bus         |6         |active power                  |6   |0   |
+|Bus         |6         |inactive power                |6   |1   |
+|Line        |0         |active power from             |10  |0   |
+|Line        |0         |inactive power from           |10  |1   |
+|Line        |0         |active power to               |10  |2   |
+|Line        |0         |inactive power to             |10  |3   |
+|Line        |0         |overload percent              |10  |4   |
+|Line        |1         |active power from             |11  |0   |
+|Line        |1         |inactive power from           |11  |1   |
+|Line        |1         |active power to               |11  |2   |
+|Line        |1         |inactive power to             |11  |3   |
+|Line        |1         |overload percent              |11  |4   |
+|Line        |2         |active power from             |12  |0   |
+|Line        |2         |inactive power from           |12  |1   |
+|Line        |2         |active power to               |12  |2   |
+|Line        |2         |inactive power to             |12  |3   |
+|Line        |2         |overload percent              |12  |4   |
+|Line        |3         |active power from             |13  |0   |
+|Line        |3         |inactive power from           |13  |1   |
+|Line        |3         |active power to               |13  |2   |
+|Line        |3         |inactive power to             |13  |3   |
+|Line        |3         |overload percent              |13  |4   |
+|Transformer |0         |active power on high voltage  |20  |0   |
+|Transformer |0         |inactive power on high voltage|20  |1   |
+|Transformer |0         |active power on low voltage   |20  |2   |
+|Transformer |0         |inactive power on low voltage |20  |3   |
+|Transformer |0         |loading percent               |20  |4   |
+|Switch      |0         |closed                        |30  |0   |
+|Switch      |1         |closed                        |30  |1   |
+|Switch      |2         |closed                        |30  |2   |
+|Switch      |3         |closed                        |30  |3   |
+|Switch      |4         |closed                        |30  |4   |
+|Switch      |5         |closed                        |30  |5   |
+|Switch      |6         |closed                        |30  |6   |
+|Switch      |7         |closed                        |30  |7   |
 
-    .../simulator python3 main.py
+## Configuration
 
+Users of the simulator may also specify their own configuration, changing the
+way communication interfaces interact with the simulator. Configuration is a
+JSON/YAML file with properties ``communication`` and ``process``. The first
+configurs the communication interfaces, while the second configures the
+physical simulation.
 
-Adapter is component that communicates with simulator and acts a abstraction
-level. It communicates with simulator using protocol iec-104. Also, It can
-forward values from simulator using one of the following protocols:
+``communication`` property is an array whose items are objects with properties
+``name`` and ``type``. The type differentiates between the different protocols
+supported by the system (currently, ``modbus`` and ``iec104`` are supported).
+The name differentiates the individual instances of the communication
+interfaces (e.g. perhaps we want to have several ``modbus`` servers).
+Additionally, a communication entry can also have protocol-specific properties
+like the listening address, various timeouts, etc. Currently, both Modbus and
+IEC104 interfaces only have the property ``address``, where one may write a URL
+that specifies the listening address of the interface (hostname and port are
+taken into consideration).
 
-    http
-    tcp
-    websocket
+``process`` property configures the simulation and the way communication
+interfaces connect to it. It has two subproperties, ``spontaneity`` and
+``points``. Spontaneity configures how often the random changes occur. The
+points property as an array whose items configure individual connections
+between the simulation and the communication interfaces. Every point has
+properties ``table``, ``property`` and ``id``, which correspond to the
+properties of the [pandapower
+network](https://pandapower.readthedocs.io/en/v2.4.0/elements.html), which is a
+data structure the simulation uses to calculate its state, introduce changes,
+etc. Additionally, every point has an ``outputs`` array, whose items specify
+how certain communication interfaces present the value of the point to their
+clients. These outputs items have a property ``name``, which is paired with the
+names in the ``communication`` section, and other properties that are
+protocol-specific. When a change in the simulation that affects that point
+occurs, the communication interface is notified and it passes that information
+along to any external application that may be connected to it. For instance, if
+we configure the following point:
 
-Adapter can be started with:
-    
-    .../adapter python3 main.py -p {http/tcp/ws}
+```yaml
+communication:
+  - name: inteface1
+    type: iec104
+    address: 'tcp+iec104://127.0.0.1:12345'
+  ...
+points:
+  ...
+  - table: res_bus
+    id: 0
+    property: p_mw
+    type: float
+    outputs:
+      - name: interface1
+        asdu: 10
+        io: 12
+  ...
+...
+```
 
-
+This point watches for changes on bus 0 (``table`` and ``id`` properties), of
+the property representing their active power (``p_mw``). When active power
+changes, that change will be notified over ``interface1``, which uses the
+IEC104 protocol, and it will be identified with ASDU address 10 and IO address
+12.

@@ -1,17 +1,8 @@
 ---
 communication:
-  #- name: websocket
-  #  type: websocket
-  #  address: 'ws://127.0.0.1:8765'
-  #- name: tcp
-  #  type: tcp
-  #  address: 'tcp://127.0.0.1:4567'
-  - name: modbus
-    type: modbus
-    address: 'tcp+modbus://127.0.0.1:9999'
   - name: iec104
     type: iec104
-    address: 'tcp+iec104://127.0.0.1:19999'
+    address: 'tcp+iec104://127.0.0.1:12345'
 process:
     points:
       - id: 0
@@ -22,9 +13,6 @@ process:
           - name: iec104
             asdu: 0
             io: 0
-          - name: modbus
-            data_type: HOLDING_REGISTER
-            address: 4000
       - id: 0
         property: q_mvar
         table: res_bus
