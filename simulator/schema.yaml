@@ -1,0 +1,94 @@
+---
+id: power-grid-simulator://schema.yaml#
+title: Simulator configuration
+description: Specifies the structure of the simulator's configuration
+type: object
+required:
+    - communication
+    - process
+properties:
+    communication:
+        type: array
+        items:
+            type: object
+            required:
+                - name
+                - type
+            properties:
+                name:
+                    type: string
+            oneOf:
+              - description: Modbus and IEC104 communication configuration
+                required:
+                    - address
+                properties:
+                    type:
+                        enum: [iec104, modbus]
+    process:
+        type: object
+        required:
+            - points
+            - spontaneity
+        properties:
+            points:
+                type: array
+                items:
+                    type: object
+                    required:
+                        - table
+                        - property
+                        - id
+                        - type
+                        - outputs
+                    properties:
+                        table:
+                            type: string
+                        property:
+                            type: string
+                        id:
+                            type: integer
+                        outputs:
+                            type: array
+                            items:
+                                type: object
+                                description: Output matched by name in communication settings
+                                required:
+                                    - name
+                                properties:
+                                    name:
+                                        type: string
+                                oneOf:
+                                  - description: Matched with communication intefaces with type iec104
+                                    required:
+                                        - asdu
+                                        - io
+                                    properties:
+                                        asdu:
+                                            type: integer
+                                        io:
+                                            type: integer
+                                  - description: Matched with communication intefaces with type modbus
+                                    required:
+                                        - data_type
+                                        - address
+                                    properties:
+                                        data_type:
+                                            enum: 
+                                                - COIL
+                                                - DISCRETE_INPUT
+                                                - HOLDING_REGISTER
+                                                - INPUT_REGISTER
+                                                - QUEUE
+                                        address:
+                                            type: integer
+            spontaneity:
+                type: object
+                required:
+                    - mu
+                    - sigma
+                properties:
+                    mu:
+                        type: number
+                    sigma:
+                        type: number
+...

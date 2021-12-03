@@ -1,0 +1,399 @@
+---
+communication:
+  #- name: websocket
+  #  type: websocket
+  #  address: 'ws://127.0.0.1:8765'
+  #- name: tcp
+  #  type: tcp
+  #  address: 'tcp://127.0.0.1:4567'
+  - name: modbus
+    type: modbus
+    address: 'tcp+modbus://127.0.0.1:9999'
+  - name: iec104
+    type: iec104
+    address: 'tcp+iec104://127.0.0.1:19999'
+process:
+    points:
+      - id: 0
+        property: p_mw
+        table: res_bus
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 0
+            io: 0
+          - name: modbus
+            data_type: HOLDING_REGISTER
+            address: 4000
+      - id: 0
+        property: q_mvar
+        table: res_bus
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 0
+            io: 1
+      - id: 1
+        property: p_mw
+        table: res_bus
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 1
+            io: 0
+      - id: 1
+        property: q_mvar
+        table: res_bus
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 1
+            io: 1
+      - id: 2
+        property: p_mw
+        table: res_bus
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 2
+            io: 0
+      - id: 2
+        property: q_mvar
+        table: res_bus
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 2
+            io: 1
+      - id: 3
+        property: p_mw
+        table: res_bus
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 3
+            io: 0
+      - id: 3
+        property: q_mvar
+        table: res_bus
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 3
+            io: 1
+      - id: 4
+        property: p_mw
+        table: res_bus
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 4
+            io: 0
+      - id: 4
+        property: q_mvar
+        table: res_bus
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 4
+            io: 1
+      - id: 5
+        property: p_mw
+        table: res_bus
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 5
+            io: 0
+      - id: 5
+        property: q_mvar
+        table: res_bus
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 5
+            io: 1
+      - id: 6
+        property: p_mw
+        table: res_bus
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 6
+            io: 0
+      - id: 6
+        property: q_mvar
+        table: res_bus
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 6
+            io: 1
+      - id: 0
+        property: p_from_mw
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 10
+            io: 0
+      - id: 0
+        property: q_from_mvar
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 10
+            io: 1
+      - id: 0
+        property: p_to_mw
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 10
+            io: 2
+      - id: 0
+        property: q_to_mvar
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 10
+            io: 3
+      - id: 0
+        property: loading_percent
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 10
+            io: 4
+      - id: 1
+        property: p_from_mw
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 11
+            io: 0
+      - id: 1
+        property: q_from_mvar
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 11
+            io: 1
+      - id: 1
+        property: p_to_mw
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 11
+            io: 2
+      - id: 1
+        property: q_to_mvar
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 11
+            io: 3
+      - id: 1
+        property: loading_percent
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 11
+            io: 4
+      - id: 2
+        property: p_from_mw
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 12
+            io: 0
+      - id: 2
+        property: q_from_mvar
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 12
+            io: 1
+      - id: 2
+        property: p_to_mw
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 12
+            io: 2
+      - id: 2
+        property: q_to_mvar
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 12
+            io: 3
+      - id: 2
+        property: loading_percent
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 12
+            io: 4
+      - id: 3
+        property: p_from_mw
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 13
+            io: 0
+      - id: 3
+        property: q_from_mvar
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 13
+            io: 1
+      - id: 3
+        property: p_to_mw
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 13
+            io: 2
+      - id: 3
+        property: q_to_mvar
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 13
+            io: 3
+      - id: 3
+        property: loading_percent
+        table: res_line
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 13
+            io: 4
+      - id: 0
+        property: p_hv_mw
+        table: res_trafo
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 20
+            io: 0
+      - id: 0
+        property: q_hv_mvar
+        table: res_trafo
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 20
+            io: 1
+      - id: 0
+        property: p_lv_mw
+        table: res_trafo
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 20
+            io: 2
+      - id: 0
+        property: q_lv_mvar
+        table: res_trafo
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 20
+            io: 3
+      - id: 0
+        property: loading_percent
+        table: res_trafo
+        type: float
+        outputs:
+          - name: iec104
+            asdu: 20
+            io: 4
+        id: 0
+        property: closed
+        table: switch
+        type: single
+        outputs:
+          - name: iec104
+            asdu: 30
+            io: 0
+      - id: 1
+        property: closed
+        table: switch
+        type: single
+        outputs:
+          - name: iec104
+            asdu: 31
+            io: 0
+      - id: 2
+        property: closed
+        table: switch
+        type: single
+        outputs:
+          - name: iec104
+            asdu: 32
+            io: 0
+      - id: 3
+        property: closed
+        table: switch
+        type: single
+        outputs:
+          - name: iec104
+            asdu: 33
+            io: 0
+      - id: 4
+        property: closed
+        table: switch
+        type: single
+        outputs:
+          - name: iec104
+            asdu: 34
+            io: 0
+      - id: 5
+        property: closed
+        table: switch
+        type: single
+        outputs:
+          - name: iec104
+            asdu: 35
+            io: 0
+      - id: 6
+        property: closed
+        table: switch
+        type: single
+        outputs:
+          - name: iec104
+            asdu: 36
+            io: 0
+      - id: 7
+        property: closed
+        table: switch
+        type: single
+        outputs:
+          - name: iec104
+            asdu: 37
+            io: 0
+    spontaneity:
+        mu: 5
+        sigma: 1
+...
