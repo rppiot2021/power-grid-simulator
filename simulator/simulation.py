@@ -65,12 +65,14 @@ class SimpleNetworkSimulation(common.Simulation):
         net_old = copy.deepcopy(self._net)
         await self._executor(_ext_calculate_flows, self._net)
         changes = []
+        print('>' * 80)
         for point in self._points:
             key = (point['table'], point['property'], point['id'])
             current = _net_get_value(self._net, *key)
             previous = _net_get_value(net_old, *key)
             if current != previous:
                 changes.append(key)
+                print(f'{key} {previous:.2f} -> {current:.2f}')
         self._callback_registry.notify(changes)
 
 
