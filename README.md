@@ -61,7 +61,7 @@ changes occur. IEC104 clients can send command requests in order to modify the
 states of the switch elements, causing the simulation to turn them off or on.
 
 The following table shows how individual measurements and indications (switch
-positions) are sent to clients connected using IEC104:
+positions) are converted into IEC104 data (ASDU, IO and used type):
 
 |Element type|Element ID|Property                      |ASDU|IO  |IEC 104 type |
 |------------|----------|------------------------------|----|----|-------------|
